@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>짤·카드 스튜디오 — 편집과 미리보기</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<header>
+  <h1>짤·카드 스튜디오</h1>
+  <span class="sub">편집과 미리보기 — 로그인 없이 바로 사용</span>
+</header>
+
+<div class="layout">
+  <!-- 좌측: 편집 도구 -->
+  <aside class="panel">
+    <h2>1. 이미지</h2>
+    <div class="field">
+      <label class="drop" id="dropZone" for="fileInput">
+        클릭하거나 PNG·JPEG 파일을 선택하세요
+      </label>
+      <input id="fileInput" type="file" accept="image/png,image/jpeg" hidden />
+      <div class="msg" id="fileMsg" role="status" aria-live="polite"></div>
+    </div>
+
+    <h2>2. 화면비</h2>
+    <div class="field">
+      <select id="aspectRatio">
+        <option value="1:1">1:1 (정사각형)</option>
+        <option value="4:5">4:5 (인스타그램 세로)</option>
+        <option value="9:16">9:16 (릴스/스토리)</option>
+      </select>
+    </div>
+
+    <h2>3. 문구</h2>
+    <div class="field">
+      <label for="textInput">문구 (줄바꿈 가능)</label>
+      <textarea id="textInput" rows="3" placeholder="문구를 입력하세요">가장자리 테스트 🎉
+줄바꿈과 이모지 😊 혼합</textarea>
+    </div>
+
+    <div class="field">
+      <label>위치 — X</label>
+      <div class="row">
+        <input id="posX" type="range" min="0" max="100" value="50" />
+        <span class="val" id="posXVal">50</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>위치 — Y</label>
+      <div class="row">
+        <input id="posY" type="range" min="0" max="100" value="50" />
+        <span class="val" id="posYVal">50</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>크기</label>
+      <div class="row">
+        <input id="fontSize" type="range" min="12" max="160" value="48" />
+        <span class="val" id="fontSizeVal">48</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="colorInput">색</label>
+      <input id="colorInput" type="color" value="#ffffff" />
+    </div>
+
+    <div class="field" style="margin-top: 24px;">
+      <button id="downloadBtn" style="width:100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 14px;">
+        현재 화면비로 이미지 다운로드 (PNG)
+      </button>
+    </div>
+
+    <div class="badge" id="stateBadge">작업 없음</div>
+  </aside>
+
+  <!-- 우측: 미리보기 + 템플릿 -->
+  <section class="stage">
+    <div class="row" style="justify-content:space-between;">
+      <strong style="font-size:14px;">미리보기</strong>
+      <span class="hint" id="metaInfo">이미지를 불러오면 정보가 표시됩니다</span>
+    </div>
+    <div class="canvas-wrap">
+      <canvas id="canvas" width="720" height="720" aria-label="문구와 이미지 미리보기"></canvas>
+    </div>
+    
+    <!-- 템플릿 관리 패널 -->
+    <div style="border-top: 1px solid var(--line); padding-top: 16px; margin-top: 8px;">
+      <div class="row" style="justify-content:space-between; margin-bottom: 12px;">
+        <strong style="font-size:14px;">나의 템플릿</strong>
+        <div style="display:flex; gap: 6px;">
+          <button id="saveTemplateBtn" style="padding: 6px 12px; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 4px; cursor: pointer; font-size: 12px;">+ 현재 상태 저장</button>
+          
+          <!-- 카드 5 추가: JSON 내보내기 / 가져오기 -->
+          <button id="exportJsonBtn" style="padding: 6px 12px; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 4px; cursor: pointer; font-size: 12px;">JSON 내보내기</button>
+          <button id="importJsonBtn" style="padding: 6px 12px; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 4px; cursor: pointer; font-size: 12px;">JSON 가져오기</button>
+          <input type="file" id="jsonFileInput" accept=".json" hidden />
+        </div>
+      </div>
+      <!-- JSON 가져오기 결과 메시지 -->
+      <div id="jsonMsg" class="msg" style="margin-bottom: 8px;"></div>
+      
+      <ul id="templateList" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto;">
+        <!-- JS에서 템플릿 목록 렌더링 -->
+      </ul>
+    </div>
+  </section>
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
