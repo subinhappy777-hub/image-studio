@@ -36,27 +36,12 @@ function updateMeta() {
 
 export async function handleFile(file) {
   if (!file) return;
-
-  if (file.size === 0) {
-    showMsg("거부됨: 빈 파일(0바이트)입니다.", "error");
-    return;
-  }
-  if (file.size > LIMITS.MAX_BYTES) {
-    showMsg(`거부됨: 파일이 너무 큽니다(최대 ${LIMITS.MAX_BYTES / 1024 / 1024}MB).`, "error");
-    return;
-  }
+  if (file.size === 0) { showMsg("거부됨: 빈 파일(0바이트)입니다.", "error"); return; }
+  if (file.size > LIMITS.MAX_BYTES) { showMsg(`거부됨: 파일이 너무 큽니다(최대 ${LIMITS.MAX_BYTES / 1024 / 1024}MB).`, "error"); return; }
 
   let realType;
-  try {
-    realType = await sniffType(file);
-  } catch {
-    showMsg("거부됨: 파일을 읽을 수 없습니다.", "error");
-    return;
-  }
-  if (!realType) {
-    showMsg("거부됨: PNG 또는 JPEG 파일만 지원합니다.", "error");
-    return;
-  }
+  try { realType = await sniffType(file); } catch { showMsg("거부됨: 파일을 읽을 수 없습니다.", "error"); return; }
+  if (!realType) { showMsg("거부됨: PNG 또는 JPEG 파일만 지원합니다.", "error"); return; }
 
   const url = URL.createObjectURL(file);
   try {
@@ -69,7 +54,24 @@ export async function handleFile(file) {
       return;
     }
 
-    state.image = img;
+    // 🟢 기기 맞춤 최적화: 이미지를 적절한 크기로 미리 리사이징하여 메모리 보호
+    const maxTargetSize = 1200; // 최대 1200px로 제한
+    if (img.naturalWidth > maxTargetSize || img.naturalHeight > maxTargetSize) {
+      const scale = Math.min(maxTargetSize / img.naturalWidth, maxTargetSize / img.naturalHeight);
+      const newW = Math.floor(img.naturalWidth * scale);
+      const newH = Math.floor(img.naturalHeight * scale);
+      
+      const tempCanvas = document.createElement("canvas");
+      tempCanvas.width = newW; tempCanvas.height = newH;
+      const tempCtx = tempCanvas.getContext("2d");
+      tempCtx.drawImage(img, 0, 0, newW, newH);
+      
+      const optimizedImg = await loadImage(tempCanvas.toDataURL(realType));
+      state.image = optimizedImg;
+    } else {
+      state.image = img;
+    }
+
     state.fileName = file.name;
     showMsg(`불러옴: ${file.name} (${realType === "image/png" ? "PNG" : "JPEG"})`, "ok");
     updateMeta();
