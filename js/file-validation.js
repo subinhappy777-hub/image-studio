@@ -54,8 +54,7 @@ export async function handleFile(file) {
       return;
     }
 
-    // 🟢 기기 맞춤 최적화: 이미지를 적절한 크기로 미리 리사이징하여 메모리 보호
-    const maxTargetSize = 1200; // 최대 1200px로 제한
+    const maxTargetSize = 1200; 
     if (img.naturalWidth > maxTargetSize || img.naturalHeight > maxTargetSize) {
       const scale = Math.min(maxTargetSize / img.naturalWidth, maxTargetSize / img.naturalHeight);
       const newW = Math.floor(img.naturalWidth * scale);

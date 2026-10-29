@@ -49,6 +49,7 @@ export function loadTemplate(id) {
   state.color = t.color;
   state.stickers = t.stickers || [];
   state.drawings = t.drawings || [];
+  state.selectedStickerId = null;
 
   updateCanvasSize();
   document.getElementById("aspectRatio").value = state.aspectRatio;

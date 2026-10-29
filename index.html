@@ -88,32 +88,53 @@
     <!-- 탭 3: 이모지 스티커 -->
     <div id="tab-sticker" class="tab-content">
       <h2>이모지 스티커</h2>
-      <p class="hint" style="margin-bottom: 8px;">클릭하여 캔버스에 추가하세요 (드래그로 이동 가능)</p>
-      <div class="sticker-grid" id="stickerGrid">
-        <!-- JS에서 렌더링 -->
+      <p class="hint" style="margin-bottom: 8px;">
+        1. 이모지를 <b>선택</b>하고 캔버스를 클릭하세요.<br>
+        2. 스티커를 클릭하면 <b>선택(파란 테두리)</b>됩니다.<br>
+        3. 드래그하여 이동하고, 우측 상단 <b>핸들</b>로 회전하세요.
+      </p>
+      <div class="sticker-grid" id="stickerGrid"></div>
+      
+      <div class="field" style="margin-top: 16px; text-align: center;">
+        <span style="font-size: 13px; color: var(--muted);">선택된 이모지: </span>
+        <span id="selectedEmojiDisplay" style="font-size: 24px; vertical-align: middle;">(없음)</span>
       </div>
-      <div class="field" style="margin-top: 16px;">
+
+      <div class="field" style="margin-top: 8px;">
         <button id="clearStickersBtn" class="btn-secondary" style="width:100%;">모든 스티커 지우기</button>
       </div>
     </div>
 
-    <!-- 탭 4: 그리기 -->
+    <!-- 탭 4: 그리기 (얼짱 스타일 꾸미기 펜) -->
     <div id="tab-draw" class="tab-content">
-      <h2>그림 그리기</h2>
+      <h2>꾸미기 펜</h2>
+      <p class="hint" style="margin-bottom: 8px;">캔버스를 클릭하고 드래그하여 그림을 그립니다.</p>
+      
       <div class="field">
-        <label>브러시 색상</label>
+        <label>브러시 종류</label>
+        <select id="brushType">
+          <option value="pen">✏️ 기본 펜 (부드러운 선)</option>
+          <option value="neon">💡 네온 브러시 (빛나는 효과)</option>
+          <option value="highlighter">🖍️ 형광펜 (투명한 굵은 선)</option>
+          <option value="glitter">✨ 글리터 펜 (반짝이)</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>색상</label>
         <input id="brushColor" type="color" value="#ff5c6c" />
       </div>
       <div class="field">
-        <label>브러시 굵기 <span id="brushSizeVal" class="val">5</span></label>
-        <input id="brushSize" type="range" min="1" max="50" value="5" />
+        <label>굵기 <span id="brushSizeVal" class="val">8</span></label>
+        <input id="brushSize" type="range" min="1" max="50" value="8" />
       </div>
       <div class="field">
-        <button id="clearDrawBtn" class="btn-secondary" style="width:100%;">그리기 모두 지우기</button>
+        <button id="undoDrawBtn" class="btn-secondary" style="width:100%; margin-bottom:8px;">↩️ 마지막 선 실행 취소</button>
+        <button id="clearDrawBtn" class="btn-secondary" style="width:100%;">🗑️ 모두 지우기</button>
       </div>
     </div>
 
-    <!-- 다운로드 버튼 (항상 보임) -->
+    <!-- 다운로드 버튼 -->
     <div class="field" style="margin-top: 24px; border-top: 1px solid var(--line); padding-top: 16px;">
       <button id="downloadBtn" class="btn-primary">이미지 다운로드 (PNG)</button>
     </div>
@@ -142,9 +163,7 @@
         </div>
       </div>
       <div id="jsonMsg" class="msg" style="margin-bottom: 8px;"></div>
-      <ul id="templateList" class="template-list">
-        <!-- JS에서 렌더링 -->
-      </ul>
+      <ul id="templateList" class="template-list"></ul>
     </div>
   </section>
 </div>
@@ -152,3 +171,5 @@
 <script type="module" src="js/main.js"></script>
 </body>
 </html>
+//스티커추가 및 팬으로 그림그리기 기능까지 넣음
+// 보충이 필요한 기능: 기기에 따른 사진 크기의 변화, 메인 화면의 디자인

@@ -1,7 +1,7 @@
 export const state = {
   image: null,
   fileName: "",
-  aspectRatio: "1:1", // "1:1", "4:5", "9:16"
+  aspectRatio: "1:1",
   text: "가장자리 테스트 🎉\n줄바꿈과 이모지 😊 혼합",
   posX: 50,
   posY: 50,
@@ -9,9 +9,9 @@ export const state = {
   fontFamily: "system-ui, 'Malgun Gothic', sans-serif",
   color: "#ffffff",
   
-  // 새로 추가된 기능들
-  stickers: [], // { id, emoji, x (%), y (%), size (px) }
-  drawings: [], // { points: [{x, y}], color, size }
+  stickers: [], // { id, emoji, x, y, size, rotation }
+  selectedStickerId: null,
+  drawings: [], // { points: [{x, y}], color, size, type }
 };
 
 export const LIMITS = {
@@ -27,12 +27,10 @@ export function updateCanvasSize() {
   if (state.aspectRatio === "4:5") { w = 720; h = 900; }
   if (state.aspectRatio === "9:16") { w = 720; h = 1280; }
   
-  // 🟢 기기 맞춤형: 이미지가 캔버스 해상도보다 작으면 늘리고, 크면 줄임
   canvas.width = w;
   canvas.height = h;
 }
 
-// 텍스트 줄바꿈
 function getLines(text, maxWidth) {
   if (!text) return [""];
   const paragraphs = text.split('\n');
@@ -55,8 +53,69 @@ function getLines(text, maxWidth) {
   return lines;
 }
 
+// 개별 선(Stroke)을 그리는 함수 (브러시 효과 적용)
+function drawStroke(stroke) {
+  if (stroke.points.length < 2) return;
+  
+  const { points, color, size, type } = stroke;
+  
+  // 경로 생성
+  ctx.beginPath();
+  const p0 = points[0];
+  ctx.moveTo((p0.x / 100) * canvas.width, (p0.y / 100) * canvas.height);
+  
+  for (let i = 1; i < points.length; i++) {
+    const p = points[i];
+    ctx.lineTo((p.x / 100) * canvas.width, (p.y / 100) * canvas.height);
+  }
+
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.strokeStyle = color;
+
+  if (type === "neon") {
+    // 네온: 여러 겹의 빛나는 효과
+    ctx.save();
+    ctx.shadowBlur = size * 2;
+    ctx.shadowColor = color;
+    ctx.lineWidth = size;
+    ctx.stroke();
+    
+    ctx.shadowBlur = size * 4;
+    ctx.lineWidth = size * 0.6;
+    ctx.stroke();
+    ctx.restore();
+  } else if (type === "highlighter") {
+    // 형광펜: 투명도가 있고 굵은 선
+    ctx.save();
+    ctx.globalAlpha = 0.4;
+    ctx.lineWidth = size * 1.5;
+    ctx.stroke();
+    ctx.restore();
+  } else if (type === "glitter") {
+    // 글리터: 메인 선 + 주변에 랜덤한 점들(반짝이)
+    ctx.lineWidth = size;
+    ctx.stroke();
+    
+    ctx.fillStyle = color;
+    points.forEach(pt => {
+      // 일정 확률로 반짝이 생성 (매 렌더링마다 동일한 위치에 그려지도록 pt 자체에 좌표 기반 난수 사용은 복잡하므로 단순 무작위)
+      if (Math.random() > 0.7) {
+        const px = (pt.x / 100) * canvas.width + (Math.random() - 0.5) * size * 3;
+        const py = (pt.y / 100) * canvas.height + (Math.random() - 0.5) * size * 3;
+        ctx.beginPath();
+        ctx.arc(px, py, Math.random() * 1.5 + 0.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    });
+  } else {
+    // 기본 펜
+    ctx.lineWidth = size;
+    ctx.stroke();
+  }
+}
+
 export function render() {
-  // 1. 배경 및 이미지
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = "#111417";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -72,25 +131,10 @@ export function render() {
     ctx.drawImage(state.image, dx, dy, dw, dh);
   }
 
-  // 2. 그리기 레이어 (배경 이미지 위, 텍스트 아래)
-  state.drawings.forEach(stroke => {
-    if (stroke.points.length < 2) return;
-    ctx.beginPath();
-    ctx.strokeStyle = stroke.color;
-    ctx.lineWidth = stroke.size;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    
-    stroke.points.forEach((pt, i) => {
-      const px = (pt.x / 100) * canvas.width;
-      const py = (pt.y / 100) * canvas.height;
-      if (i === 0) ctx.moveTo(px, py);
-      else ctx.lineTo(px, py);
-    });
-    ctx.stroke();
-  });
+  // 그리기 레이어
+  state.drawings.forEach(stroke => drawStroke(stroke));
 
-  // 3. 텍스트 레이어
+  // 텍스트 레이어
   ctx.font = `700 ${state.fontSize}px ${state.fontFamily}`;
   ctx.fillStyle = state.color;
   ctx.textAlign = "center";
@@ -108,14 +152,42 @@ export function render() {
     ctx.fillText(line, x, y);
   });
 
-  // 4. 스티커 레이어
+  // 스티커 레이어
   state.stickers.forEach(s => {
+    const px = (s.x / 100) * canvas.width;
+    const py = (s.y / 100) * canvas.height;
+
+    ctx.save();
+    ctx.translate(px, py);
+    ctx.rotate(s.rotation || 0);
+
     ctx.font = `${s.size}px "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    const px = (s.x / 100) * canvas.width;
-    const py = (s.y / 100) * canvas.height;
-    ctx.fillText(s.emoji, px, py);
+    ctx.fillText(s.emoji, 0, 0);
+
+    // 선택 테두리 및 회전 핸들
+    if (state.selectedStickerId === s.id) {
+      const w = s.size * 0.8;
+      const h = s.size * 0.8;
+      
+      ctx.strokeStyle = "#4f8cff";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 5]);
+      ctx.strokeRect(-w/2, -h/2, w, h);
+      ctx.setLineDash([]);
+
+      const handleX = w/2;
+      const handleY = -h/2;
+      ctx.beginPath();
+      ctx.arc(handleX, handleY, 6, 0, Math.PI * 2);
+      ctx.fillStyle = "#4f8cff";
+      ctx.fill();
+      ctx.strokeStyle = "#fff";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+    ctx.restore();
   });
 
   updateBadge();

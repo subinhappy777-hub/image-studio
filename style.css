@@ -85,9 +85,15 @@ input[type="color"] {
 .sticker-item {
   font-size: 24px; text-align: center; cursor: pointer;
   padding: 8px; border-radius: 6px; background: #0d0f14; border: 1px solid var(--line);
-  transition: transform 0.1s;
+  transition: all 0.15s;
 }
 .sticker-item:hover { transform: scale(1.1); border-color: var(--accent); }
+.sticker-item.selected {
+  background: rgba(79, 140, 255, 0.2);
+  border-color: var(--accent);
+  transform: scale(1.1);
+  box-shadow: 0 0 8px rgba(79, 140, 255, 0.5);
+}
 
 /* 버튼 스타일 */
 .btn-primary {
