@@ -17,14 +17,17 @@ export const LIMITS = {
 export const canvas = document.getElementById("canvas");
 export const ctx = canvas.getContext("2d");
 
+// 화면비에 따른 캔버스 해상도 설정 (기기와 무관하게 고정된 해상도 사용)
 export function updateCanvasSize() {
   let w = 720, h = 720;
   if (state.aspectRatio === "4:5") { w = 720; h = 900; }
   if (state.aspectRatio === "9:16") { w = 720; h = 1280; }
+  
   canvas.width = w;
   canvas.height = h;
 }
 
+// 텍스트 줄바꿈 처리 함수
 function getLines(text, maxWidth) {
   if (!text) return [""];
   const paragraphs = text.split('\n');
@@ -48,6 +51,7 @@ function getLines(text, maxWidth) {
 }
 
 export function render() {
+  // 캔버스 논리 크기(해상도) 기준으로 그리기 (화면에 보이는 크기와 무관)
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = "#111417";
   ctx.fillRect(0, 0, canvas.width, canvas.height);

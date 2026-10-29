@@ -85,7 +85,9 @@
       <strong style="font-size:14px;">미리보기</strong>
       <span class="hint" id="metaInfo">이미지를 불러오면 정보가 표시됩니다</span>
     </div>
-    <div class="canvas-wrap">
+    
+    <!-- 캔버스를 감싸는 래퍼 (비율 유지용) -->
+    <div class="canvas-wrap" id="canvasWrap">
       <canvas id="canvas" width="720" height="720" aria-label="문구와 이미지 미리보기"></canvas>
     </div>
     
@@ -95,16 +97,12 @@
         <strong style="font-size:14px;">나의 템플릿</strong>
         <div style="display:flex; gap: 6px;">
           <button id="saveTemplateBtn" style="padding: 6px 12px; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 4px; cursor: pointer; font-size: 12px;">+ 현재 상태 저장</button>
-          
-          <!-- 카드 5 추가: JSON 내보내기 / 가져오기 -->
           <button id="exportJsonBtn" style="padding: 6px 12px; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 4px; cursor: pointer; font-size: 12px;">JSON 내보내기</button>
           <button id="importJsonBtn" style="padding: 6px 12px; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 4px; cursor: pointer; font-size: 12px;">JSON 가져오기</button>
           <input type="file" id="jsonFileInput" accept=".json" hidden />
         </div>
       </div>
-      <!-- JSON 가져오기 결과 메시지 -->
       <div id="jsonMsg" class="msg" style="margin-bottom: 8px;"></div>
-      
       <ul id="templateList" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto;">
         <!-- JS에서 템플릿 목록 렌더링 -->
       </ul>

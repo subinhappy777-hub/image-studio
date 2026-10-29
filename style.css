@@ -64,12 +64,23 @@ input[type="color"] {
   display: flex; flex-direction: column; gap: 10px;
 }
 .stage .hint { color: var(--muted); font-size: 12px; }
+
+/* 🟢 7.2 기기별 출력 일관성: 캔버스 래퍼 반응형 처리 */
 .canvas-wrap {
   flex: 1; display: flex; align-items: center; justify-content: center;
   background: #0b0d11; border: 1px dashed var(--line); border-radius: 8px;
-  padding: 12px; overflow: hidden;
+  padding: 12px; overflow: hidden; width: 100%;
 }
-canvas { max-width: 100%; max-height: 62vh; border-radius: 6px; background: #111; }
+
+/* 캔버스가 부모 크기에 맞춰 비율을 유지하며 줄어들도록 설정 */
+canvas { 
+  display: block;
+  max-width: 100%; 
+  max-height: 62vh; 
+  object-fit: contain; /* 찌그러짐 방지 */
+  border-radius: 6px; 
+  background: #111; 
+}
 
 .badge {
   display: inline-block; font-size: 11px; padding: 2px 8px;
@@ -86,27 +97,15 @@ canvas { max-width: 100%; max-height: 62vh; border-radius: 6px; background: #111
 
 /* 템플릿 목록 UI */
 #templateList li {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: #0d0f14;
-  border: 1px solid var(--line);
-  padding: 8px 12px;
-  border-radius: 6px;
-  font-size: 13px;
+  display: flex; justify-content: space-between; align-items: center;
+  background: #0d0f14; border: 1px solid var(--line);
+  padding: 8px 12px; border-radius: 6px; font-size: 13px;
 }
-#templateList .btn-group {
-  display: flex;
-  gap: 6px;
-}
+#templateList .btn-group { display: flex; gap: 6px; }
 #templateList button {
-  background: transparent;
-  border: 1px solid var(--line);
-  color: var(--muted);
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-  cursor: pointer;
+  background: transparent; border: 1px solid var(--line);
+  color: var(--muted); padding: 4px 8px; border-radius: 4px;
+  font-size: 11px; cursor: pointer;
 }
 #templateList button:hover { color: var(--text); border-color: var(--muted); }
 #templateList button.del { color: var(--danger); border-color: rgba(255, 92, 108, 0.3); }

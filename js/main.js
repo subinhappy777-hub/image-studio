@@ -61,13 +61,19 @@ drop.addEventListener("drop", (e) => {
   handleFile(f);
 });
 
-// 다운로드 버튼
+// 다운로드 버튼 (기기별 해상도 일관성 보장)
 document.getElementById("downloadBtn").addEventListener("click", () => {
+  // 화면에 보이는 크기와 상관없이 항상 설정된 논리 해상도(720x... )로 렌더링
   render();
+  
+  // 캔버스의 내부 픽셀 데이터를 그대로 추출 (DPR 영향 없음)
   const dataURL = canvas.toDataURL("image/png");
+  
   const link = document.createElement("a");
   const ratioName = state.aspectRatio.replace(":", "x");
-  link.download = `card-studio_${ratioName}_${Date.now()}.png`;
+  
+  // 파일명에 해상도를 포함하여 어떤 기기에서 받았는지 명확히 함
+  link.download = `card-studio_${ratioName}_${canvas.width}x${canvas.height}.png`;
   link.href = dataURL;
   document.body.appendChild(link);
   link.click();
@@ -79,7 +85,7 @@ document.getElementById("saveTemplateBtn").addEventListener("click", () => {
   createTemplate();
 });
 
-// 카드 5: JSON 내보내기/가져오기 이벤트
+// JSON 내보내기/가져오기 이벤트
 document.getElementById("exportJsonBtn").addEventListener("click", exportTemplates);
 
 document.getElementById("importJsonBtn").addEventListener("click", () => {
@@ -89,7 +95,7 @@ document.getElementById("importJsonBtn").addEventListener("click", () => {
 document.getElementById("jsonFileInput").addEventListener("change", (e) => {
   const file = e.target.files && e.target.files[0];
   importTemplates(file);
-  e.target.value = ""; // 같은 파일 재선택 허용
+  e.target.value = "";
 });
 
 // 초기화

@@ -2,7 +2,6 @@ import { state, render, updateCanvasSize } from "./state.js";
 
 const STORAGE_KEY = "zzal_card_templates";
 
-// 로컬 스토리지에서 템플릿 배열 불러오기
 export function getTemplates() {
   try {
     return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
@@ -11,12 +10,10 @@ export function getTemplates() {
   }
 }
 
-// 로컬 스토리지에 템플릿 배열 저장하기
 function saveTemplates(templates) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(templates));
 }
 
-// 현재 상태를 기반으로 템플릿 생성
 export function createTemplate() {
   const templates = getTemplates();
   const newId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
@@ -38,7 +35,6 @@ export function createTemplate() {
   renderTemplateList();
 }
 
-// 특정 ID의 템플릿을 현재 상태로 수정
 export function updateTemplate(id) {
   const templates = getTemplates();
   const index = templates.findIndex(t => t.id === id);
@@ -60,7 +56,6 @@ export function updateTemplate(id) {
   }
 }
 
-// 특정 ID의 템플릿 삭제
 export function deleteTemplate(id) {
   if (!confirm("이 템플릿을 삭제하시겠습니까?")) return;
   let templates = getTemplates();
@@ -69,7 +64,6 @@ export function deleteTemplate(id) {
   renderTemplateList();
 }
 
-// 특정 ID의 템플릿 불러오기
 export function loadTemplate(id) {
   const templates = getTemplates();
   const template = templates.find(t => t.id === id);
@@ -108,7 +102,6 @@ export function loadTemplate(id) {
   }
 }
 
-// 템플릿 목록 UI 렌더링
 export function renderTemplateList() {
   const listEl = document.getElementById("templateList");
   const templates = getTemplates();
@@ -143,10 +136,6 @@ export function renderTemplateList() {
   );
 }
 
-// ==========================================
-// 카드 5: JSON 내보내기 / 가져오기 (안전한 복원)
-// ==========================================
-
 export function exportTemplates() {
   const templates = getTemplates();
   if (templates.length === 0) {
@@ -180,14 +169,12 @@ export function importTemplates(file) {
       const rawText = e.target.result;
       let parsedData;
       
-      // 1. 문법 검사 (T03-C23: 손상된 JSON 거부)
       try {
         parsedData = JSON.parse(rawText);
       } catch (syntaxError) {
         throw new Error("JSON 문법이 손상되었습니다.");
       }
 
-      // 2. 구조 검사 (T03-C24: 필수 항목 누락 거부)
       if (!Array.isArray(parsedData)) {
         throw new Error("데이터 형식이 올바르지 않습니다. (배열이 아님)");
       }
@@ -205,8 +192,6 @@ export function importTemplates(file) {
         });
       });
 
-      // 3. 모든 검증 통과 시에만 덮어쓰기 저장 (T03-C22)
-      // 기존 템플릿에 병합할지, 덮어쓸지 결정 (여기서는 덮어쓰기)
       if (!confirm("가져온 템플릿으로 기존 템플릿을 덮어쓰시겠습니까?")) {
         msgEl.textContent = "가져오기가 취소되었습니다.";
         msgEl.className = "msg error";
@@ -219,7 +204,6 @@ export function importTemplates(file) {
       msgEl.className = "msg ok";
 
     } catch (error) {
-      // 검증 실패 시 기존 템플릿 유지 (saveTemplates를 호출하지 않음)
       msgEl.textContent = `거부됨: ${error.message}`;
       msgEl.className = "msg error";
     }
