@@ -3,173 +3,124 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>짤·카드 스튜디오 — 프로 에디터</title>
+  <title>짤·카드 스튜디오</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
 
-<header>
-  <h1>짤·카드 스튜디오</h1>
-  <span class="sub">다양한 기능으로 나만의 카드를 만들어보세요</span>
-</header>
+<div class="app-container">
+  <!-- 1. 상단 타이틀 -->
+  <header class="app-header">
+    <h1>짤·카드 스튜디오</h1>
+  </header>
 
-<div class="layout">
-  <!-- 좌측: 편집 도구 -->
-  <aside class="panel">
-    <!-- 탭 메뉴 -->
-    <div class="tabs">
-      <button class="tab-btn active" data-tab="tab-basic">기본</button>
-      <button class="tab-btn" data-tab="tab-text">폰트</button>
-      <button class="tab-btn" data-tab="tab-sticker">스티커</button>
-      <button class="tab-btn" data-tab="tab-draw">그리기</button>
+  <!-- 2. 툴바 (편집 도구 선택) -->
+  <div class="toolbar">
+    <button class="tool-btn active" data-tool="image">🖼️ 사진</button>
+    <button class="tool-btn" data-tool="text">📝 텍스트</button>
+    <button class="tool-btn" data-tool="sticker">✨ 스티커</button>
+    <button class="tool-btn" data-tool="draw">🖍️ 그리기</button>
+  </div>
+
+  <!-- 3. 중앙 메인 뷰어 -->
+  <main class="viewer-area">
+    <div class="canvas-container">
+      <!-- 캔버스 -->
+      <canvas id="canvas" width="720" height="720"></canvas>
+      <!-- 캔버스 조작을 위한 오버레이 (선택용) -->
+      <div id="canvasOverlay" class="canvas-overlay"></div>
     </div>
+    <div id="fileMsg" class="msg"></div>
+  </main>
 
-    <!-- 탭 1: 기본 (이미지, 화면비) -->
-    <div id="tab-basic" class="tab-content active">
-      <h2>1. 이미지</h2>
-      <div class="field">
-        <label class="drop" id="dropZone" for="fileInput">
-          클릭하거나 PNG·JPEG 파일을 선택하세요
-        </label>
+  <!-- 4. 하단 편집 패널 (툴바 선택에 따라 내용 변경) -->
+  <div class="control-panel">
+    
+    <!-- 사진/화면비 설정 -->
+    <div id="panel-image" class="panel-content active">
+      <div class="row">
+        <button id="uploadBtn" class="action-btn">사진 선택하기</button>
         <input id="fileInput" type="file" accept="image/png,image/jpeg" hidden />
-        <div class="msg" id="fileMsg" role="status" aria-live="polite"></div>
-      </div>
-      <h2>2. 화면비</h2>
-      <div class="field">
         <select id="aspectRatio">
-          <option value="1:1">1:1 (정사각형)</option>
-          <option value="4:5">4:5 (인스타그램 세로)</option>
-          <option value="9:16">9:16 (릴스/스토리)</option>
+          <option value="1:1">1:1 정사각형</option>
+          <option value="4:5">4:5 세로형</option>
+          <option value="9:16">9:16 스토리</option>
         </select>
       </div>
-      <div class="badge" id="stateBadge">작업 없음</div>
     </div>
 
-    <!-- 탭 2: 폰트 설정 -->
-    <div id="tab-text" class="tab-content">
-      <h2>문구 입력</h2>
-      <div class="field">
-        <textarea id="textInput" rows="3" placeholder="문구를 입력하세요">가장자리 테스트 🎉
-줄바꿈과 이모지 😊 혼합</textarea>
-      </div>
-      
-      <h2>폰트 스타일</h2>
-      <div class="field">
-        <label for="fontFamily">글꼴</label>
+    <!-- 텍스트 설정 -->
+    <div id="panel-text" class="panel-content">
+      <textarea id="textInput" rows="2" placeholder="문구를 입력하세요">여기에 문구를 입력하세요 🎉</textarea>
+      <div class="row" style="margin-top: 8px;">
         <select id="fontFamily">
-          <option value="system-ui, 'Malgun Gothic', sans-serif">기본 고딕</option>
-          <option value="'Georgia', serif">조지아 (명조풍)</option>
-          <option value="'Courier New', monospace">Courier (타자기)</option>
-          <option value="'Impact', sans-serif">Impact (굵은 제목)</option>
-          <option value="'Comic Sans MS', cursive">Comic Sans (캐주얼)</option>
+          <option value="system-ui, sans-serif">기본 고딕</option>
+          <option value="'Georgia', serif">조지아</option>
+          <option value="'Impact', sans-serif">Impact</option>
         </select>
-      </div>
-      
-      <div class="field">
-        <label>크기 <span id="fontSizeVal" class="val">48</span></label>
-        <input id="fontSize" type="range" min="12" max="160" value="48" />
-      </div>
-      <div class="field">
-        <label>색상</label>
-        <input id="colorInput" type="color" value="#ffffff" />
-      </div>
-      <div class="field row">
-        <div style="flex:1">
-          <label>X 위치 <span id="posXVal" class="val">50</span></label>
-          <input id="posX" type="range" min="0" max="100" value="50" />
-        </div>
-        <div style="flex:1">
-          <label>Y 위치 <span id="posYVal" class="val">50</span></label>
-          <input id="posY" type="range" min="0" max="100" value="50" />
-        </div>
+        <input id="colorInput" type="color" value="#ffffff" title="텍스트 색상" />
+        <input id="fontSize" type="range" min="12" max="120" value="48" />
       </div>
     </div>
 
-    <!-- 탭 3: 이모지 스티커 -->
-    <div id="tab-sticker" class="tab-content">
-      <h2>이모지 스티커</h2>
-      <p class="hint" style="margin-bottom: 8px;">
-        1. 이모지를 <b>선택</b>하고 캔버스를 클릭하세요.<br>
-        2. 스티커를 클릭하면 <b>선택(파란 테두리)</b>됩니다.<br>
-        3. 드래그하여 이동하고, 우측 상단 <b>핸들</b>로 회전하세요.
-      </p>
+    <!-- 스티커 설정 -->
+    <div id="panel-sticker" class="panel-content">
       <div class="sticker-grid" id="stickerGrid"></div>
-      
-      <div class="field" style="margin-top: 16px; text-align: center;">
-        <span style="font-size: 13px; color: var(--muted);">선택된 이모지: </span>
-        <span id="selectedEmojiDisplay" style="font-size: 24px; vertical-align: middle;">(없음)</span>
-      </div>
-
-      <div class="field" style="margin-top: 8px;">
-        <button id="clearStickersBtn" class="btn-secondary" style="width:100%;">모든 스티커 지우기</button>
+      <div class="row" style="margin-top: 8px;">
+        <span id="selectedEmojiDisplay">선택된 스티커: 없음</span>
+        <button id="clearStickersBtn" class="action-btn" style="margin-left: auto;">모두 지우기</button>
       </div>
     </div>
 
-    <!-- 탭 4: 그리기 (얼짱 스타일 꾸미기 펜) -->
-    <div id="tab-draw" class="tab-content">
-      <h2>꾸미기 펜</h2>
-      <p class="hint" style="margin-bottom: 8px;">캔버스를 클릭하고 드래그하여 그림을 그립니다.</p>
-      
-      <div class="field">
-        <label>브러시 종류</label>
+    <!-- 그리기 설정 -->
+    <div id="panel-draw" class="panel-content">
+      <div class="row">
         <select id="brushType">
-          <option value="pen">✏️ 기본 펜 (부드러운 선)</option>
-          <option value="neon">💡 네온 브러시 (빛나는 효과)</option>
-          <option value="highlighter">🖍️ 형광펜 (투명한 굵은 선)</option>
-          <option value="glitter">✨ 글리터 펜 (반짝이)</option>
+          <option value="pen">기본 펜</option>
+          <option value="neon">네온</option>
+          <option value="highlighter">형광펜</option>
+          <option value="glitter">글리터</option>
         </select>
-      </div>
-
-      <div class="field">
-        <label>색상</label>
-        <input id="brushColor" type="color" value="#ff5c6c" />
-      </div>
-      <div class="field">
-        <label>굵기 <span id="brushSizeVal" class="val">8</span></label>
+        <input id="brushColor" type="color" value="#ff5c6c" title="펜 색상" />
         <input id="brushSize" type="range" min="1" max="50" value="8" />
-      </div>
-      <div class="field">
-        <button id="undoDrawBtn" class="btn-secondary" style="width:100%; margin-bottom:8px;">↩️ 마지막 선 실행 취소</button>
-        <button id="clearDrawBtn" class="btn-secondary" style="width:100%;">🗑️ 모두 지우기</button>
+        <button id="undoDrawBtn" class="action-btn">실행 취소</button>
       </div>
     </div>
+  </div>
 
-    <!-- 다운로드 버튼 -->
-    <div class="field" style="margin-top: 24px; border-top: 1px solid var(--line); padding-top: 16px;">
-      <button id="downloadBtn" class="btn-primary">이미지 다운로드 (PNG)</button>
-    </div>
-  </aside>
+  <!-- 5. 하단 액션 (Input, Save, Output) -->
+  <div class="bottom-actions">
+    <!-- Input: 사진 선택 -->
+    <button id="btnInput" class="btn-bottom btn-input">
+      <span class="icon">📂</span>
+      <span>Input</span>
+    </button>
+    <!-- Save: 템플릿 저장 (메모리) -->
+    <button id="btnSave" class="btn-bottom btn-save">
+      <span class="icon">💾</span>
+      <span>Save</span>
+    </button>
+    <!-- Output: 파일로 다운로드 -->
+    <button id="btnOutput" class="btn-bottom btn-output">
+      <span class="icon">📤</span>
+      <span>Output</span>
+    </button>
+  </div>
 
-  <!-- 우측: 미리보기 + 템플릿 -->
-  <section class="stage">
-    <div class="row" style="justify-content:space-between;">
-      <strong style="font-size:14px;">미리보기</strong>
-      <span class="hint" id="metaInfo">이미지를 불러오면 정보가 표시됩니다</span>
-    </div>
-    
-    <div class="canvas-wrap" id="canvasWrap">
-      <canvas id="canvas" width="720" height="720" aria-label="문구와 이미지 미리보기"></canvas>
-    </div>
-    
-    <!-- 템플릿 관리 패널 -->
-    <div style="border-top: 1px solid var(--line); padding-top: 16px; margin-top: 8px;">
-      <div class="row" style="justify-content:space-between; margin-bottom: 12px;">
-        <strong style="font-size:14px;">나의 템플릿</strong>
-        <div style="display:flex; gap: 6px; flex-wrap: wrap;">
-          <button id="saveTemplateBtn" class="btn-small">+ 현재 상태 저장</button>
-          <button id="exportJsonBtn" class="btn-small">JSON 내보내기</button>
-          <button id="importJsonBtn" class="btn-small">JSON 가져오기</button>
-          <input type="file" id="jsonFileInput" accept=".json" hidden />
-        </div>
+  <!-- 템플릿 목록 (하단 Save 버튼 아래에 토글 형태로 표시) -->
+  <div id="templateListContainer" class="template-container">
+    <div class="row" style="justify-content: space-between; margin-bottom: 8px;">
+      <strong>저장된 템플릿 (메모리)</strong>
+      <div style="display:flex; gap: 4px;">
+        <button id="exportJsonBtn" class="mini-btn">JSON 내보내기</button>
+        <button id="importJsonBtn" class="mini-btn">가져오기</button>
+        <input type="file" id="jsonFileInput" accept=".json" hidden />
       </div>
-      <div id="jsonMsg" class="msg" style="margin-bottom: 8px;"></div>
-      <ul id="templateList" class="template-list"></ul>
     </div>
-  </section>
+    <ul id="templateList"></ul>
+  </div>
 </div>
 
 <script type="module" src="js/main.js"></script>
 </body>
 </html>
-//스티커추가 및 팬으로 그림그리기 기능까지 넣음
-// 보충이 필요한 기능: 기기에 따른 사진 크기의 변화, 메인 화면의 디자인

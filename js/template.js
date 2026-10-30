@@ -13,26 +13,18 @@ function saveTemplates(templates) {
 export function createTemplate() {
   const templates = getTemplates();
   const newId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
-  
   const newTemplate = {
-    id: newId,
-    name: `템플릿 ${templates.length + 1}`,
-    aspectRatio: state.aspectRatio,
-    text: state.text,
-    posX: state.posX,
-    posY: state.posY,
-    fontSize: state.fontSize,
-    fontFamily: state.fontFamily,
-    color: state.color,
+    id: newId, name: `템플릿 ${templates.length + 1}`,
+    aspectRatio: state.aspectRatio, text: state.text, posX: state.posX, posY: state.posY,
+    fontSize: state.fontSize, fontFamily: state.fontFamily, color: state.color,
     imageSrc: state.image ? state.image.src : null,
     stickers: JSON.parse(JSON.stringify(state.stickers)),
     drawings: JSON.parse(JSON.stringify(state.drawings))
   };
-  
   templates.push(newTemplate);
   saveTemplates(templates);
   renderTemplateList();
-  alert("현재 상태가 템플릿으로 저장되었습니다.");
+  alert("현재 상태가 메모리에 템플릿으로 저장되었습니다.");
 }
 
 export function loadTemplate(id) {
@@ -40,23 +32,15 @@ export function loadTemplate(id) {
   const t = templates.find(t => t.id === id);
   if (!t) return;
 
-  state.aspectRatio = t.aspectRatio;
-  state.text = t.text;
-  state.posX = t.posX;
-  state.posY = t.posY;
-  state.fontSize = t.fontSize;
-  state.fontFamily = t.fontFamily || "system-ui, 'Malgun Gothic', sans-serif";
-  state.color = t.color;
-  state.stickers = t.stickers || [];
-  state.drawings = t.drawings || [];
+  state.aspectRatio = t.aspectRatio; state.text = t.text;
+  state.posX = t.posX; state.posY = t.posY;
+  state.fontSize = t.fontSize; state.fontFamily = t.fontFamily || "system-ui, sans-serif";
+  state.color = t.color; state.stickers = t.stickers || []; state.drawings = t.drawings || [];
   state.selectedStickerId = null;
 
   updateCanvasSize();
   document.getElementById("aspectRatio").value = state.aspectRatio;
   document.getElementById("textInput").value = state.text;
-  document.getElementById("posX").value = state.posX; document.getElementById("posXVal").textContent = state.posX;
-  document.getElementById("posY").value = state.posY; document.getElementById("posYVal").textContent = state.posY;
-  document.getElementById("fontSize").value = state.fontSize; document.getElementById("fontSizeVal").textContent = state.fontSize;
   document.getElementById("fontFamily").value = state.fontFamily;
   document.getElementById("colorInput").value = state.color;
 
@@ -65,30 +49,12 @@ export function loadTemplate(id) {
     img.onload = () => { state.image = img; state.fileName = "템플릿 이미지"; render(); };
     img.src = t.imageSrc;
   } else {
-    state.image = null; state.fileName = ""; render();
+    state.image = null; render();
   }
 }
 
-export function updateTemplate(id) {
-  const templates = getTemplates();
-  const index = templates.findIndex(t => t.id === id);
-  if (index === -1) return;
-
-  templates[index] = {
-    ...templates[index],
-    aspectRatio: state.aspectRatio, text: state.text, posX: state.posX, posY: state.posY,
-    fontSize: state.fontSize, fontFamily: state.fontFamily, color: state.color,
-    imageSrc: state.image ? state.image.src : null,
-    stickers: JSON.parse(JSON.stringify(state.stickers)),
-    drawings: JSON.parse(JSON.stringify(state.drawings))
-  };
-  saveTemplates(templates);
-  renderTemplateList();
-  alert("현재 상태로 템플릿이 수정되었습니다.");
-}
-
 export function deleteTemplate(id) {
-  if (!confirm("이 템플릿을 삭제하시겠습니까?")) return;
+  if (!confirm("삭제하시겠습니까?")) return;
   let templates = getTemplates().filter(t => t.id !== id);
   saveTemplates(templates);
   renderTemplateList();
@@ -96,6 +62,7 @@ export function deleteTemplate(id) {
 
 export function renderTemplateList() {
   const listEl = document.getElementById("templateList");
+  const container = document.getElementById("templateListContainer");
   const templates = getTemplates();
   listEl.innerHTML = "";
   
@@ -110,7 +77,6 @@ export function renderTemplateList() {
       <span>${t.name}</span>
       <div class="btn-group">
         <button class="load" data-id="${t.id}">불러오기</button>
-        <button class="update" data-id="${t.id}">수정</button>
         <button class="del" data-id="${t.id}">삭제</button>
       </div>
     `;
@@ -118,7 +84,6 @@ export function renderTemplateList() {
   });
 
   listEl.querySelectorAll(".load").forEach(btn => btn.addEventListener("click", (e) => loadTemplate(e.target.dataset.id)));
-  listEl.querySelectorAll(".update").forEach(btn => btn.addEventListener("click", (e) => updateTemplate(e.target.dataset.id)));
   listEl.querySelectorAll(".del").forEach(btn => btn.addEventListener("click", (e) => deleteTemplate(e.target.dataset.id)));
 }
 
@@ -135,10 +100,9 @@ export function exportTemplates() {
 }
 
 export function importTemplates(file) {
-  const msgEl = document.getElementById("jsonMsg");
+  const msgEl = document.getElementById("fileMsg");
   msgEl.textContent = ""; msgEl.className = "msg";
   if (!file) return;
-
   const reader = new FileReader();
   reader.onload = (e) => {
     try {

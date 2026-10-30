@@ -24,34 +24,21 @@ function loadImage(url) {
   });
 }
 
-function updateMeta() {
-  const el = document.getElementById("metaInfo");
-  if (state.image) {
-    const canvas = document.getElementById("canvas");
-    el.textContent = `${state.image.naturalWidth}×${state.image.naturalHeight}px · 미리보기 ${canvas.width}×${canvas.height}`;
-  } else {
-    el.textContent = "이미지를 불러오면 정보가 표시됩니다";
-  }
-}
-
 export async function handleFile(file) {
   if (!file) return;
-  if (file.size === 0) { showMsg("거부됨: 빈 파일(0바이트)입니다.", "error"); return; }
-  if (file.size > LIMITS.MAX_BYTES) { showMsg(`거부됨: 파일이 너무 큽니다(최대 ${LIMITS.MAX_BYTES / 1024 / 1024}MB).`, "error"); return; }
+  if (file.size === 0) { showMsg("거부됨: 빈 파일입니다.", "error"); return; }
+  if (file.size > LIMITS.MAX_BYTES) { showMsg(`거부됨: 최대 10MB까지 가능합니다.`, "error"); return; }
 
   let realType;
   try { realType = await sniffType(file); } catch { showMsg("거부됨: 파일을 읽을 수 없습니다.", "error"); return; }
-  if (!realType) { showMsg("거부됨: PNG 또는 JPEG 파일만 지원합니다.", "error"); return; }
+  if (!realType) { showMsg("거부됨: PNG 또는 JPEG만 지원합니다.", "error"); return; }
 
   const url = URL.createObjectURL(file);
   try {
     const img = await loadImage(url);
-
     if (img.naturalWidth === 0 || img.naturalHeight === 0) throw new Error("empty");
     if (img.naturalWidth > LIMITS.MAX_SIDE || img.naturalHeight > LIMITS.MAX_SIDE) {
-      URL.revokeObjectURL(url);
-      showMsg(`거부됨: 해상도가 너무 큽니다(변당 최대 ${LIMITS.MAX_SIDE}px).`, "error");
-      return;
+      URL.revokeObjectURL(url); showMsg(`거부됨: 해상도가 너무 큽니다.`, "error"); return;
     }
 
     const maxTargetSize = 1200; 
@@ -59,24 +46,19 @@ export async function handleFile(file) {
       const scale = Math.min(maxTargetSize / img.naturalWidth, maxTargetSize / img.naturalHeight);
       const newW = Math.floor(img.naturalWidth * scale);
       const newH = Math.floor(img.naturalHeight * scale);
-      
       const tempCanvas = document.createElement("canvas");
       tempCanvas.width = newW; tempCanvas.height = newH;
-      const tempCtx = tempCanvas.getContext("2d");
-      tempCtx.drawImage(img, 0, 0, newW, newH);
-      
-      const optimizedImg = await loadImage(tempCanvas.toDataURL(realType));
-      state.image = optimizedImg;
+      tempCanvas.getContext("2d").drawImage(img, 0, 0, newW, newH);
+      state.image = await loadImage(tempCanvas.toDataURL(realType));
     } else {
       state.image = img;
     }
 
     state.fileName = file.name;
-    showMsg(`불러옴: ${file.name} (${realType === "image/png" ? "PNG" : "JPEG"})`, "ok");
-    updateMeta();
+    showMsg(`사진을 불러왔습니다.`, "ok");
     render();
   } catch {
     URL.revokeObjectURL(url);
-    showMsg("거부됨: 손상되었거나 이미지가 아닌 파일입니다.", "error");
+    showMsg("거부됨: 손상된 파일입니다.", "error");
   }
 }

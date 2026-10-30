@@ -1,9 +1,9 @@
 :root {
-  --bg: #0f1115;
-  --panel: #171a21;
-  --line: #2a2f3a;
-  --text: #e6e8ee;
-  --muted: #9aa3b2;
+  --bg: #121212;
+  --panel: #1e1e24;
+  --line: #33333d;
+  --text: #ffffff;
+  --muted: #a0a0b0;
   --accent: #4f8cff;
   --danger: #ff5c6c;
   --ok: #35c48a;
@@ -12,152 +12,127 @@
 body {
   margin: 0; background: var(--bg); color: var(--text);
   font-family: system-ui, -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
-  overflow-x: hidden;
+  display: flex; justify-content: center;
 }
-header {
-  padding: 14px 20px; border-bottom: 1px solid var(--line);
-  display: flex; align-items: baseline; gap: 12px;
-}
-header h1 { font-size: 16px; margin: 0; }
-header .sub { color: var(--muted); font-size: 12px; }
 
-.layout {
-  display: grid;
-  grid-template-columns: 340px 1fr;
-  gap: 16px; padding: 16px; min-height: calc(100vh - 56px);
-}
-@media (max-width: 760px) { .layout { grid-template-columns: 1fr; } }
-
-.panel {
-  background: var(--panel); border: 1px solid var(--line);
-  border-radius: 10px; padding: 16px;
+.app-container {
+  width: 100%; max-width: 600px; min-height: 100vh;
   display: flex; flex-direction: column;
+  background: var(--bg);
 }
 
-/* 탭 UI */
-.tabs {
-  display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 1px solid var(--line); padding-bottom: 8px;
+/* 1. 헤더 */
+.app-header {
+  padding: 16px; text-align: center;
+  border-bottom: 1px solid var(--line);
 }
-.tab-btn {
-  flex: 1; padding: 8px 0; background: transparent; border: none;
-  color: var(--muted); font-weight: bold; cursor: pointer; border-radius: 4px;
-  font-size: 13px;
-}
-.tab-btn:hover { color: var(--text); background: rgba(255,255,255,0.05); }
-.tab-btn.active { color: var(--accent); background: rgba(79, 140, 255, 0.1); }
-.tab-content { display: none; flex: 1; }
-.tab-content.active { display: block; }
+.app-header h1 { margin: 0; font-size: 20px; }
 
-.panel h2 {
-  font-size: 13px; margin: 16px 0 8px; color: var(--muted);
-  text-transform: uppercase; letter-spacing: .04em;
+/* 2. 툴바 */
+.toolbar {
+  display: flex; gap: 4px; padding: 12px;
+  background: var(--panel); border-bottom: 1px solid var(--line);
 }
-.panel h2:first-child { margin-top: 0; }
+.tool-btn {
+  flex: 1; padding: 10px 0; background: transparent; border: 1px solid transparent;
+  color: var(--muted); border-radius: 8px; cursor: pointer; font-weight: bold;
+  transition: all 0.2s;
+}
+.tool-btn.active {
+  background: rgba(79, 140, 255, 0.15); color: var(--accent);
+}
 
-.field { margin-bottom: 14px; }
-.field label { display: block; font-size: 13px; margin-bottom: 6px; }
-input[type="text"], input[type="range"], input[type="color"], select, textarea {
-  width: 100%;
+/* 3. 중앙 뷰어 */
+.viewer-area {
+  flex: 1; padding: 16px; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; background: #0a0a0c;
 }
-input[type="text"], select, textarea {
-  background: #0d0f14; border: 1px solid var(--line);
-  color: var(--text); border-radius: 6px; padding: 8px 10px; font-size: 14px;
-  font-family: inherit;
+.canvas-container {
+  position: relative; width: 100%; max-width: 500px;
+  background: #000; border-radius: 12px; overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5); border: 1px solid var(--line);
+  display: flex; justify-content: center;
 }
-textarea { resize: none; line-height: 1.5; }
-input[type="range"] { accent-color: var(--accent); }
-input[type="color"] {
-  height: 34px; background: none; border: 1px solid var(--line);
-  border-radius: 6px; padding: 2px; cursor: pointer;
+canvas {
+  display: block; width: 100%; height: auto; max-height: 50vh; object-fit: contain;
+  cursor: crosshair;
 }
-.row { display: flex; gap: 8px; align-items: center; }
-.row .val { float: right; color: var(--muted); font-size: 12px; }
-
-.msg { font-size: 12px; margin-top: 10px; min-height: 16px; }
+.msg { margin-top: 12px; font-size: 13px; color: var(--ok); min-height: 20px; }
 .msg.error { color: var(--danger); }
-.msg.ok { color: var(--ok); }
+
+/* 4. 하단 편집 패널 */
+.control-panel {
+  background: var(--panel); padding: 16px; border-top: 1px solid var(--line);
+  min-height: 120px;
+}
+.panel-content { display: none; }
+.panel-content.active { display: block; }
+
+.row { display: flex; gap: 8px; align-items: center; }
+.row > * { flex: 1; }
+
+input[type="text"], textarea, select, input[type="range"] {
+  width: 100%; background: #2a2a32; border: 1px solid var(--line);
+  color: var(--text); border-radius: 8px; padding: 10px; font-family: inherit;
+}
+textarea { resize: none; }
+input[type="color"] {
+  width: 44px; height: 44px; padding: 2px; background: none;
+  border: 1px solid var(--line); border-radius: 8px; cursor: pointer;
+}
+.action-btn {
+  padding: 10px 16px; background: var(--line); color: var(--text);
+  border: none; border-radius: 8px; cursor: pointer; font-weight: bold;
+  white-space: nowrap;
+}
+.action-btn:hover { background: #444; }
 
 /* 스티커 그리드 */
 .sticker-grid {
-  display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;
-  max-height: 250px; overflow-y: auto; padding-right: 4px;
+  display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px;
 }
 .sticker-item {
-  font-size: 24px; text-align: center; cursor: pointer;
-  padding: 8px; border-radius: 6px; background: #0d0f14; border: 1px solid var(--line);
-  transition: all 0.15s;
+  font-size: 28px; cursor: pointer; padding: 8px;
+  background: #2a2a32; border-radius: 8px; border: 2px solid transparent;
+  flex-shrink: 0;
 }
-.sticker-item:hover { transform: scale(1.1); border-color: var(--accent); }
-.sticker-item.selected {
-  background: rgba(79, 140, 255, 0.2);
-  border-color: var(--accent);
-  transform: scale(1.1);
-  box-shadow: 0 0 8px rgba(79, 140, 255, 0.5);
-}
+.sticker-item.selected { border-color: var(--accent); background: rgba(79,140,255,0.2); }
 
-/* 버튼 스타일 */
-.btn-primary {
-  width:100%; padding: 12px; background: var(--accent); color: white;
-  border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 14px;
+/* 5. 하단 메인 액션 (Input, Save, Output) */
+.bottom-actions {
+  display: flex; gap: 12px; padding: 16px;
+  background: var(--panel); border-top: 1px solid var(--line);
 }
-.btn-primary:hover { background: #3a7bff; }
-.btn-secondary {
-  padding: 8px; background: var(--panel); color: var(--text);
-  border: 1px solid var(--line); border-radius: 6px; cursor: pointer; font-size: 13px;
+.btn-bottom {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 16px 8px; border-radius: 12px; border: none; cursor: pointer;
+  font-size: 14px; font-weight: bold; color: white; gap: 6px;
+  transition: transform 0.1s;
 }
-.btn-secondary:hover { background: rgba(255,255,255,0.05); }
-.btn-small {
-  padding: 6px 10px; background: var(--panel); color: var(--text);
-  border: 1px solid var(--line); border-radius: 4px; cursor: pointer; font-size: 12px;
-}
-.btn-small:hover { background: rgba(255,255,255,0.05); }
+.btn-bottom:active { transform: scale(0.95); }
+.btn-bottom .icon { font-size: 24px; }
 
-/* 미리보기 스테이지 */
-.stage {
-  background: var(--panel); border: 1px solid var(--line);
-  border-radius: 10px; padding: 16px;
-  display: flex; flex-direction: column; gap: 10px;
-}
-.stage .hint { color: var(--muted); font-size: 12px; }
-.canvas-wrap {
-  flex: 1; display: flex; align-items: center; justify-content: center;
-  background: #0b0d11; border: 1px dashed var(--line); border-radius: 8px;
-  padding: 12px; overflow: hidden; width: 100%; min-height: 300px;
-}
-canvas { 
-  display: block; width: 100%; height: auto;
-  max-width: 100%; max-height: 62vh; object-fit: contain; 
-  border-radius: 6px; background: #111; cursor: crosshair;
-}
+/* 버튼별 색상 지정 (스케치처럼 직관적으로) */
+.btn-input { background: #3b82f6; } /* 파랑 */
+.btn-save { background: #10b981; }  /* 초록 */
+.btn-output { background: #f59e0b; } /* 주황 */
 
-.badge {
-  display: inline-block; font-size: 11px; padding: 4px 8px;
-  border: 1px solid var(--line); border-radius: 999px; color: var(--muted);
-  margin-top: 10px;
+/* 템플릿 목록 컨테이너 */
+.template-container {
+  display: none; /* 기본적으로 숨김 */
+  padding: 16px; background: var(--panel); border-top: 1px solid var(--line);
+  max-height: 250px; overflow-y: auto;
 }
-.drop {
-  border: 1px dashed var(--line); border-radius: 8px; padding: 16px;
-  text-align: center; color: var(--muted); font-size: 12px;
-  cursor: pointer; transition: border-color .15s;
-}
-.drop:hover { border-color: var(--accent); }
-
-/* 템플릿 목록 */
-.template-list {
-  list-style: none; padding: 0; margin: 0;
-  display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto;
-}
-.template-list li {
+.template-container.open { display: block; }
+.template-container ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.template-container li {
   display: flex; justify-content: space-between; align-items: center;
-  background: #0d0f14; border: 1px solid var(--line);
-  padding: 8px 12px; border-radius: 6px; font-size: 13px;
+  background: #2a2a32; padding: 10px 12px; border-radius: 8px; font-size: 14px;
 }
-.template-list .btn-group { display: flex; gap: 6px; }
-.template-list button {
-  background: transparent; border: 1px solid var(--line);
-  color: var(--muted); padding: 4px 8px; border-radius: 4px;
-  font-size: 11px; cursor: pointer;
+.template-container .btn-group { display: flex; gap: 6px; }
+.template-container button {
+  padding: 4px 8px; border-radius: 4px; border: none; cursor: pointer;
+  font-size: 12px; background: var(--line); color: white;
 }
-.template-list button:hover { color: var(--text); border-color: var(--muted); }
-.template-list button.del { color: var(--danger); border-color: rgba(255, 92, 108, 0.3); }
-.template-list button.del:hover { border-color: var(--danger); }
+.template-container button.del { background: rgba(255, 92, 108, 0.2); color: var(--danger); }
+.mini-btn { padding: 4px 8px; font-size: 11px; border-radius: 4px; border: 1px solid var(--line); background: transparent; color: white; cursor: pointer; }
