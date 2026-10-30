@@ -25,6 +25,9 @@ const $ = id => document.getElementById(id);
 let activeTool = "text";
 let drag = null;
 
+// 현재 선택한 캐릭터
+let selectedStickerEmoji = "🐱";
+
 const history = [];
 const HISTORY_LIMIT = 30;
 
@@ -36,9 +39,12 @@ function snapshot() {
   return {
     texts: structuredClone(state.texts),
     drawings: structuredClone(state.drawings),
+    stickers: structuredClone(state.stickers),
+
     imageX: state.imageX,
     imageY: state.imageY,
     imageScale: state.imageScale,
+
     background: state.background
   };
 }
@@ -66,6 +72,7 @@ function undo() {
   Object.assign(state, previous);
 
   state.selectedTextId = null;
+  state.selectedStickerId = null;
 
   $("imageScale").value = String(
     Math.round(state.imageScale * 100)
@@ -209,6 +216,124 @@ document.querySelectorAll(".tool-btn").forEach(button => {
       );
     });
   });
+});
+
+// ======================================
+// 스티커 선택
+// ======================================
+
+document.querySelectorAll(".sticker-item").forEach(button => {
+  button.addEventListener("click", () => {
+
+    // 선택한 캐릭터
+    selectedStickerEmoji = button.dataset.sticker;
+
+    // 선택 표시
+    document.querySelectorAll(".sticker-item").forEach(item => {
+      item.classList.remove("selected");
+    });
+
+    button.classList.add("selected");
+
+    // 기존 스티커 선택 해제
+    state.selectedStickerId = null;
+
+    setStatus(
+      `${selectedStickerEmoji} 스티커를 선택했습니다. 이미지 위를 클릭해 붙여 보세요.`
+    );
+  });
+});
+
+// 첫 번째 스티커 선택 표시
+document.querySelector(".sticker-item")?.classList.add("selected");
+
+// ======================================
+// 스티커 추가
+// ======================================
+
+function addSticker(x, y) {
+  remember();
+
+  const sticker = {
+    id: crypto.randomUUID(),
+    emoji: selectedStickerEmoji,
+    x,
+    y,
+    size: Number($("stickerSize").value)
+  };
+
+  state.stickers.push(sticker);
+
+  state.selectedStickerId = sticker.id;
+
+  render();
+
+  setStatus(
+    `${selectedStickerEmoji} 스티커를 추가했습니다. 드래그해서 이동할 수 있습니다.`
+  );
+}
+
+// ======================================
+// 클릭한 스티커 찾기
+// ======================================
+
+function pickSticker(x, y) {
+  return [...state.stickers].reverse().find(sticker => {
+
+    const width = sticker.size / canvas.width * 100;
+    const height = sticker.size / canvas.height * 100;
+
+    return (
+      Math.abs(sticker.x - x) <= width / 2 &&
+      Math.abs(sticker.y - y) <= height / 2
+    );
+  });
+}
+
+// ======================================
+// 스티커 크기 변경
+// ======================================
+
+$("stickerSize").addEventListener("change", event => {
+  const sticker = state.stickers.find(
+    item => item.id === state.selectedStickerId
+  );
+
+  if (!sticker) return;
+
+  remember();
+
+  sticker.size = Number(event.target.value);
+
+  render();
+});
+
+// ======================================
+// 스티커 삭제
+// ======================================
+
+$("deleteStickerBtn").addEventListener("click", () => {
+  const id = state.selectedStickerId;
+
+  if (!id) {
+    setStatus(
+      "삭제할 스티커를 먼저 선택하세요.",
+      true
+    );
+    return;
+  }
+
+  remember();
+
+  state.stickers = state.stickers.filter(
+    sticker => sticker.id !== id
+  );
+
+  state.selectedStickerId = null;
+
+  render();
+
+  setStatus("선택한 스티커를 삭제했습니다.");
 });
 
 // ======================================
@@ -402,6 +527,36 @@ canvas.addEventListener("pointerdown", event => {
     render();
   }
 
+  // 스티커 도구
+  else if (activeTool === "sticker") {
+
+    const sticker = pickSticker(point.x, point.y);
+
+    // 기존 스티커를 클릭한 경우
+    if (sticker) {
+      remember();
+
+      state.selectedStickerId = sticker.id;
+
+      $("stickerSize").value = String(sticker.size);
+
+      drag = {
+        type: "sticker",
+        target: sticker,
+        offsetX: point.x - sticker.x,
+        offsetY: point.y - sticker.y
+      };
+
+    canvas.setPointerCapture(event.pointerId);
+
+    setStatus("스티커를 선택했습니다. 드래그해 이동하세요.");
+
+    } else {
+      // 빈 곳을 클릭하면 새 스티커 추가
+      addSticker(point.x, point.y);
+    }
+  }
+
   // 이미지 이동
   else if (activeTool === "image" && state.image) {
     remember();
@@ -432,6 +587,11 @@ canvas.addEventListener("pointermove", event => {
 
   else if (drag.type === "draw") {
     drag.target.points.push(point);
+  }
+
+  else if (drag.type === "sticker") {
+    drag.target.x = point.x - drag.offsetX;
+    drag.target.y = point.y - drag.offsetY;
   }
 
   else if (drag.type === "image") {

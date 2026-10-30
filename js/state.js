@@ -185,12 +185,172 @@ function drawImage() {
 }
 
 // ======================================
-// 9. 그리기 렌더링
+// 글리터 펜 그리기
+// ======================================
+
+// 같은 위치에 항상 같은 반짝이가 나타나도록
+// 난수 대신 좌표 기반 계산을 사용합니다.
+function glitterRandom(seed) {
+  const value = Math.sin(seed * 127.1) * 43758.5453;
+  return value - Math.floor(value);
+}
+
+function drawGlitterStroke(stroke) {
+  const points = stroke.points || [];
+
+  if (points.length === 0) return;
+
+  const width = canvas.width;
+  const height = canvas.height;
+
+  const size = Math.max(2, Number(stroke.size) || 6);
+
+  ctx.save();
+
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.strokeStyle = stroke.color;
+  ctx.lineWidth = size * 0.65;
+
+  ctx.shadowColor = stroke.color;
+  ctx.shadowBlur = size * 2;
+
+  ctx.beginPath();
+
+  points.forEach((point, index) => {
+    const x = point.x * width / 100;
+    const y = point.y * height / 100;
+
+    if (index === 0) {
+      ctx.moveTo(x, y);
+    } else {
+      ctx.lineTo(x, y);
+    }
+  });
+
+  if (points.length === 1) {
+    const p = points[0];
+
+    ctx.lineTo(
+      p.x * width / 100 + 0.01,
+      p.y * height / 100 + 0.01
+    );
+  }
+
+  ctx.stroke();
+
+  // 반짝이 입자
+  ctx.shadowBlur = 0;
+
+  const drawSparkle = (x, y, radius, seed) => {
+    const angle = glitterRandom(seed + 1) * Math.PI * 2;
+
+    const distance = glitterRandom(seed + 2) * size * 2;
+
+    const sx = x + Math.cos(angle) * distance;
+    const sy = y + Math.sin(angle) * distance;
+
+    ctx.fillStyle =
+      glitterRandom(seed + 3) > 0.5
+        ? "#ffffff"
+        : "#fff5b8";
+
+    // 작은 반짝이 점
+    ctx.beginPath();
+    ctx.arc(sx, sy, radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 십자 모양의 반짝이
+    if (glitterRandom(seed + 4) > 0.72) {
+      const length = radius * 3;
+
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = Math.max(1, radius * 0.45);
+
+      ctx.beginPath();
+      ctx.moveTo(sx - length, sy);
+      ctx.lineTo(sx + length, sy);
+
+      ctx.moveTo(sx, sy - length);
+      ctx.lineTo(sx, sy + length);
+      ctx.stroke();
+    }
+  };
+
+  // 선을 따라 일정 간격으로 입자를 배치
+  let previous = null;
+  let travelled = 0;
+  const spacing = Math.max(4, size * 0.7);
+  let particleIndex = 0;
+
+  for (const point of points) {
+    const current = {
+      x: point.x * width / 100,
+      y: point.y * height / 100
+    };
+
+    if (!previous) {
+      previous = current;
+
+      drawSparkle(
+        current.x,
+        current.y,
+        Math.max(1.5, size * 0.18),
+        particleIndex++
+      );
+
+      continue;
+    }
+
+    const dx = current.x - previous.x;
+    const dy = current.y - previous.y;
+    const length = Math.hypot(dx, dy);
+
+    if (length === 0) continue;
+
+    let distance = spacing - travelled;
+
+    while (distance <= length) {
+      const ratio = distance / length;
+
+      const x = previous.x + dx * ratio;
+      const y = previous.y + dy * ratio;
+
+      const radius =
+        Math.max(1.5, size * 0.18) *
+        (0.6 + glitterRandom(particleIndex + 10));
+
+      drawSparkle(
+        x,
+        y,
+        radius,
+        particleIndex * 7 + 3
+      );
+
+      particleIndex++;
+      distance += spacing;
+    }
+
+    travelled = length - (distance - spacing);
+    previous = current;
+  }
+
+  ctx.restore();
+}
+
+// ======================================
+// 그림 렌더링
 // ======================================
 
 function drawStrokes() {
   for (const stroke of state.drawings) {
-    if (!stroke.points || !stroke.points.length) {
+    if (!stroke.points || stroke.points.length === 0) {
+      continue;
+    }
+
+    // 글리터 펜
+    if (stroke.type === "glitter") {
+      drawGlitterStroke(stroke);
       continue;
     }
 
@@ -223,10 +383,12 @@ function drawStrokes() {
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
+    // 형광펜
     if (stroke.type === "highlighter") {
       ctx.globalAlpha = 0.4;
     }
 
+    // 네온 펜
     if (stroke.type === "neon") {
       ctx.shadowColor = stroke.color;
       ctx.shadowBlur = stroke.size * 2;
@@ -294,7 +456,35 @@ function drawTexts() {
 }
 
 // ======================================
-// 11. 전체 렌더링
+// 스티커 렌더링
+// ======================================
+
+function drawStickers() {
+  for (const sticker of state.stickers) {
+    ctx.save();
+
+    const x = sticker.x * canvas.width / 100;
+    const y = sticker.y * canvas.height / 100;
+
+    const size = Number(sticker.size) || 120;
+
+    ctx.font = `${size}px "Segoe UI Emoji", "Apple Color Emoji", sans-serif`;
+
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    ctx.fillText(
+      sticker.emoji,
+      x,
+      y
+    );
+
+    ctx.restore();
+  }
+}
+
+// ======================================
+// 전체 렌더링
 // ======================================
 
 export function render() {
@@ -308,5 +498,6 @@ export function render() {
   drawBackground();
   drawImage();
   drawStrokes();
+  drawStickers();
   drawTexts();
 }

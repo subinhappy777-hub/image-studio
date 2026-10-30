@@ -470,3 +470,77 @@ input[type="color"] {
     flex-direction: column;
   }
 }
+
+/* ==================================
+   스티커 선택 영역
+================================== */
+
+.sticker-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 12px 0;
+}
+
+/* 개별 스티커 버튼 */
+.sticker-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 65px;
+
+  border: 2px solid #e2e8f0;
+  border-radius: 14px;
+
+  background: #ffffff;
+
+  font-size: 34px;
+
+  cursor: pointer;
+
+  transition:
+    transform 0.2s,
+    background 0.2s,
+    border-color 0.2s;
+}
+
+/* 마우스를 올렸을 때 */
+.sticker-item:hover {
+  transform: scale(1.08);
+  background: #fff1f8;
+  border-color: #f9a8d4;
+}
+
+/* 선택된 스티커 */
+.sticker-item.selected {
+  background: #ffe4f1;
+  border-color: #ec4899;
+  box-shadow: 0 0 0 2px #fbcfe8;
+}
+
+/* 스티커 설정 제목 */
+#opt-sticker h3 {
+  margin: 0;
+  font-size: 15px;
+  color: #334155;
+}
+
+/* 스티커 삭제 버튼 */
+#deleteStickerBtn {
+  margin-top: 10px;
+  background: #ffe4e6;
+  color: #be123c;
+}
+
+/* 모바일 화면 */
+@media (max-width: 520px) {
+  .sticker-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .sticker-item {
+    min-height: 58px;
+    font-size: 29px;
+  }
+}

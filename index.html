@@ -1,203 +1,276 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>짤·카드 스튜디오</title>
   <link rel="stylesheet" href="./style.css">
 </head>
+
 <body>
 
-<main class="app">
-  <header class="page-head">
-    <div>
-      <small>IMAGE EDITOR · T03</small>
-      <h1>짤·카드 스튜디오</h1>
-      <p>이미지와 문구를 조합해 나만의 카드를 만들어 보세요.</p>
-    </div>
-    <span class="badge">무로그인 편집기</span>
-  </header>
-
-  <section class="workspace">
-
-    <!-- 왼쪽 도구 모음 -->
-    <nav class="toolbar" aria-label="편집 도구">
-      <button class="tool-btn active" data-tool="text"
-              aria-pressed="true" title="문구 편집">
-        T
-        <span>문구</span>
-      </button>
-
-      <button class="tool-btn" data-tool="draw"
-              aria-pressed="false" title="그리기">
-        ✎
-        <span>그리기</span>
-      </button>
-
-      <button class="tool-btn" data-tool="image"
-              aria-pressed="false" title="이미지 편집">
-        ▧
-        <span>이미지</span>
-      </button>
-
-      <button class="tool-btn" data-tool="undo" title="실행 취소">
-        ↶
-        <span>취소</span>
-      </button>
-    </nav>
-
-    <!-- 중앙 편집 화면 -->
-    <section class="canvas-zone">
-      <div class="canvas-top">
-        <label for="aspectRatio">
-          화면비
-          <select id="aspectRatio">
-            <option value="1:1">1:1 정사각형</option>
-            <option value="4:5">4:5 세로형</option>
-            <option value="16:9">16:9 가로형</option>
-          </select>
-        </label>
-        <span>실시간 미리보기</span>
+  <main class="app">
+    <header class="page-head">
+      <div>
+        <small>IMAGE EDITOR · T03</small>
+        <h1>짤·카드 스튜디오</h1>
+        <p>이미지와 문구를 조합해 나만의 카드를 만들어 보세요.</p>
       </div>
+      <span class="badge">무로그인 편집기</span>
+    </header>
 
-      <div class="canvas-stage">
-        <div id="canvasContainer">
-          <canvas id="canvas" aria-label="이미지 편집 화면"></canvas>
-          <input type="text" id="inlineTextInput" class="inline-text-input" placeholder="문구 입력 후 Enter">
+    <section class="workspace">
 
-          <button id="uploadPlaceholder" type="button">
-            <strong>＋</strong>
-            <span>이미지 불러오기</span>
-            <small>PNG / JPEG</small>
-          </button>
-        </div>
-      </div>
-
-      <div class="zoom">
-        <button id="zoomOutBtn" type="button" aria-label="축소">−</button>
-        <span id="zoomLabel">100%</span>
-        <button id="zoomInBtn" type="button" aria-label="확대">＋</button>
-      </div>
-    </section>
-
-    <!-- 오른쪽 편집 설정 -->
-    <aside class="options">
-      <h2>편집 설정</h2>
-
-      <div id="opt-text" class="opt-content active">
-        <label for="textInput">문구 입력</label>
-        <textarea id="textInput" rows="3" maxlength="300"
-          placeholder="한글 문구를 입력하세요">나만의 짤을 만들어 보세요!</textarea>
-
-        <button id="addTextBtn" class="secondary" type="button">
-          문구 추가
+      <!-- 왼쪽 도구 모음 -->
+      <nav class="toolbar" aria-label="편집 도구">
+        <button class="tool-btn active" data-tool="text" aria-pressed="true" title="문구 편집">
+          T
+          <span>문구</span>
         </button>
 
-        <label for="fontSize">
-          글자 크기
-          <output id="fontSizeValue">44</output>
-        </label>
-        <input id="fontSize" type="range" min="12" max="120" value="44">
+        <button class="tool-btn" data-tool="draw" aria-pressed="false" title="그리기">
+          ✎
+          <span>그리기</span>
+        </button>
 
-        <label for="colorInput">글자 색상</label>
-        <input id="colorInput" type="color" value="#ffffff">
+        <button class="tool-btn" data-tool="sticker" aria-pressed="false" title="스티커 붙이기">
+          🧸
+          <span>스티커</span>
+        </button>
 
-        <label for="fontFamily">글꼴</label>
-        <select id="fontFamily">
-          <option value="sans-serif">기본 고딕</option>
-          <option value="serif">명조</option>
-          <option value="monospace">고정폭</option>
-        </select>
+        <button class="tool-btn" data-tool="image" aria-pressed="false" title="이미지 편집">
+          ▧
+          <span>이미지</span>
+        </button>
 
-        <p class="hint">
-          문구를 추가한 뒤 캔버스에서 드래그해 이동하세요.
-          문구를 선택하면 내용을 수정할 수 있습니다.
-        </p>
-      </div>
+        <button class="tool-btn" data-tool="undo" title="실행 취소">
+          ↶
+          <span>취소</span>
+        </button>
+      </nav>
 
-      <div id="opt-draw" class="opt-content">
-        <label for="brushColor">펜 색상</label>
-        <input id="brushColor" type="color" value="#ffda67">
+      <!-- 중앙 편집 화면 -->
+      <section class="canvas-zone">
+        <div class="canvas-top">
+          <label for="aspectRatio">
+            화면비
+            <select id="aspectRatio">
+              <option value="1:1">1:1 정사각형</option>
+              <option value="4:5">4:5 세로형</option>
+              <option value="16:9">16:9 가로형</option>
+            </select>
+          </label>
+          <span>실시간 미리보기</span>
+        </div>
 
-        <label for="brushSize">펜 굵기</label>
-        <input id="brushSize" type="range" min="2" max="40" value="6">
+        <div class="canvas-stage">
+          <div id="canvasContainer">
+            <canvas id="canvas" aria-label="이미지 편집 화면"></canvas>
+            <input type="text" id="inlineTextInput" class="inline-text-input" placeholder="문구 입력 후 Enter">
 
-        <label for="brushType">펜 종류</label>
-        <select id="brushType">
-          <option value="normal">일반 펜</option>
-          <option value="highlighter">형광펜</option>
-          <option value="neon">네온 펜</option>
-        </select>
-      </div>
+            <button id="uploadPlaceholder" type="button">
+              <strong>＋</strong>
+              <span>이미지 불러오기</span>
+              <small>PNG / JPEG</small>
+            </button>
+          </div>
+        </div>
 
-      <div id="opt-image" class="opt-content">
-        <label for="bgColor">배경 색상</label>
-        <input id="bgColor" type="color" value="#222b42">
+        <div class="zoom">
+          <button id="zoomOutBtn" type="button" aria-label="축소">−</button>
+          <span id="zoomLabel">100%</span>
+          <button id="zoomInBtn" type="button" aria-label="확대">＋</button>
+        </div>
+      </section>
 
-        <label for="imageScale">이미지 크기</label>
-        <input id="imageScale" type="range"
-               min="20" max="200" value="100">
+      <!-- 오른쪽 편집 설정 -->
+      <aside class="options">
+        <h2>편집 설정</h2>
 
-        <p class="hint">
-          이미지 도구를 선택한 뒤 캔버스를 드래그하면
-          이미지 위치를 변경할 수 있습니다.
-        </p>
-      </div>
-    </aside>
-  </section>
+        <div id="opt-text" class="opt-content active">
+          <label for="textInput">문구 입력</label>
+          <textarea id="textInput" rows="3" maxlength="300" placeholder="한글 문구를 입력하세요">나만의 짤을 만들어 보세요!</textarea>
 
-  <!-- 하단 주요 기능 -->
-  <footer class="actions">
-    <button id="btnInput" type="button">
-      INPUT
-      <small>이미지 불러오기</small>
-    </button>
+          <button id="addTextBtn" class="secondary" type="button">
+            문구 추가
+          </button>
 
-    <button id="btnSave" type="button">
-      SAVE
-      <small>템플릿 관리</small>
-    </button>
+          <label for="fontSize">
+            글자 크기
+            <output id="fontSizeValue">44</output>
+          </label>
+          <input id="fontSize" type="range" min="12" max="120" value="44">
 
-    <button id="btnOutput" type="button">
-      OUTPUT
-      <small>PNG 다운로드</small>
-    </button>
-  </footer>
+          <label for="colorInput">글자 색상</label>
+          <input id="colorInput" type="color" value="#ffffff">
 
-  <p id="status" class="status" role="status" aria-live="polite">
-    PNG 또는 JPEG 이미지를 불러오세요.
-  </p>
+          <label for="fontFamily">글꼴</label>
+          <select id="fontFamily">
+            <option value="sans-serif">기본 고딕</option>
+            <option value="serif">명조</option>
+            <option value="monospace">고정폭</option>
+          </select>
 
-  <input id="fileInput" type="file"
-         accept="image/png,image/jpeg,.png,.jpg,.jpeg" hidden>
-</main>
+          <p class="hint">
+            문구를 추가한 뒤 캔버스에서 드래그해 이동하세요.
+            문구를 선택하면 내용을 수정할 수 있습니다.
+          </p>
+        </div>
 
-<!-- 템플릿 관리 창 -->
-<div id="templateModal" class="modal"
-     role="dialog" aria-modal="true"
-     aria-label="템플릿 관리" aria-hidden="true">
+        <div id="opt-draw" class="opt-content">
+          <label for="brushColor">펜 색상</label>
+          <input id="brushColor" type="color" value="#ffda67">
 
-  <div class="modal-card">
-    <div class="modal-head">
-      <h2>템플릿 관리</h2>
-      <button id="closeModalBtn" type="button" aria-label="닫기">✕</button>
-    </div>
+          <label for="brushSize">펜 굵기</label>
+          <input id="brushSize" type="range" min="2" max="40" value="6">
 
-    <button id="createTemplateBtn" class="secondary" type="button">
-      ＋ 현재 편집 상태를 새 템플릿으로 저장
-    </button>
+          <label for="brushType">펜 종류</label>
+          <select id="brushType">
+            <option value="normal">일반 펜</option>
+            <option value="highlighter">형광펜</option>
+            <option value="neon">네온 펜</option>
+            <option value="glitter">✨ 글리터 펜</option>
+          </select>
+        </div>
 
-    <ul id="templateList"></ul>
+        <!-- 스티커 편집 설정 -->
+        <div id="opt-sticker" class="opt-content">
 
-    <p class="hint">
-      템플릿은 현재 브라우저에 저장됩니다.
-      브라우저 데이터를 삭제하면 저장 내용이 사라질 수 있습니다.
+          <h3>귀여운 캐릭터 스티커</h3>
+
+          <p class="hint">
+            원하는 캐릭터를 선택하고
+            이미지 위를 클릭해 붙여 보세요.
+          </p>
+
+          <div class="sticker-grid">
+
+            <button type="button" class="sticker-item" data-sticker="🐱" aria-label="고양이">
+              🐱
+            </button>
+
+            <button type="button" class="sticker-item" data-sticker="🐰" aria-label="토끼">
+              🐰
+            </button>
+
+            <button type="button" class="sticker-item" data-sticker="🐻" aria-label="곰">
+              🐻
+            </button>
+
+            <button type="button" class="sticker-item" data-sticker="🐼" aria-label="판다">
+              🐼
+            </button>
+
+            <button type="button" class="sticker-item" data-sticker="🐸" aria-label="개구리">
+              🐸
+            </button>
+
+            <button type="button" class="sticker-item" data-sticker="🐣" aria-label="병아리">
+              🐣
+            </button>
+
+            <button type="button" class="sticker-item" data-sticker="🦊" aria-label="여우">
+              🦊
+            </button>
+
+            <button type="button" class="sticker-item" data-sticker="🐶" aria-label="강아지">
+              🐶
+            </button>
+
+            <button type="button" class="sticker-item" data-sticker="🦄" aria-label="유니콘">
+              🦄
+            </button>
+
+            <button type="button" class="sticker-item" data-sticker="🐹" aria-label="햄스터">
+              🐹
+            </button>
+
+            <button type="button" class="sticker-item" data-sticker="🎀" aria-label="리본">
+              🎀
+            </button>
+
+            <button type="button" class="sticker-item" data-sticker="💖" aria-label="하트">
+              💖
+            </button>
+
+          </div>
+
+          <label for="stickerSize">스티커 크기</label>
+
+          <input id="stickerSize" type="range" min="40" max="300" value="120">
+
+          <button id="deleteStickerBtn" class="secondary" type="button">
+            선택한 스티커 삭제
+          </button>
+
+        </div>
+
+        <div id="opt-image" class="opt-content">
+          <label for="bgColor">배경 색상</label>
+          <input id="bgColor" type="color" value="#222b42">
+
+          <label for="imageScale">이미지 크기</label>
+          <input id="imageScale" type="range" min="20" max="200" value="100">
+
+          <p class="hint">
+            이미지 도구를 선택한 뒤 캔버스를 드래그하면
+            이미지 위치를 변경할 수 있습니다.
+          </p>
+        </div>
+      </aside>
+    </section>
+
+    <!-- 하단 주요 기능 -->
+    <footer class="actions">
+      <button id="btnInput" type="button">
+        INPUT
+        <small>이미지 불러오기</small>
+      </button>
+
+      <button id="btnSave" type="button">
+        SAVE
+        <small>템플릿 관리</small>
+      </button>
+
+      <button id="btnOutput" type="button">
+        OUTPUT
+        <small>PNG 다운로드</small>
+      </button>
+    </footer>
+
+    <p id="status" class="status" role="status" aria-live="polite">
+      PNG 또는 JPEG 이미지를 불러오세요.
     </p>
-  </div>
-</div>
 
-<!-- JavaScript 파일은 js 폴더 안에 있습니다. -->
-<script type="module" src="./js/main.js"></script>
+    <input id="fileInput" type="file" accept="image/png,image/jpeg,.png,.jpg,.jpeg" hidden>
+  </main>
+
+  <!-- 템플릿 관리 창 -->
+  <div id="templateModal" class="modal" role="dialog" aria-modal="true" aria-label="템플릿 관리" aria-hidden="true">
+
+    <div class="modal-card">
+      <div class="modal-head">
+        <h2>템플릿 관리</h2>
+        <button id="closeModalBtn" type="button" aria-label="닫기">✕</button>
+      </div>
+
+      <button id="createTemplateBtn" class="secondary" type="button">
+        ＋ 현재 편집 상태를 새 템플릿으로 저장
+      </button>
+
+      <ul id="templateList"></ul>
+
+      <p class="hint">
+        템플릿은 현재 브라우저에 저장됩니다.
+        브라우저 데이터를 삭제하면 저장 내용이 사라질 수 있습니다.
+      </p>
+    </div>
+  </div>
+
+  <!-- JavaScript 파일은 js 폴더 안에 있습니다. -->
+  <script type="module" src="./js/main.js"></script>
 
 </body>
+
 </html>
