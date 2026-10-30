@@ -3,7 +3,6 @@ export const state = {
   aspectRatio: "1:1",
   zoomLevel: 1.0,
   texts: [], 
-  selectedTextId: null,
   drawings: [], 
   stickers: [] 
 };
@@ -12,6 +11,7 @@ export const LIMITS = { MAX_BYTES: 10 * 1024 * 1024, MAX_SIDE: 8000 };
 export const canvas = document.getElementById("canvas");
 export const ctx = canvas.getContext("2d");
 
+// 화면비에 맞춰 캔버스 크기 및 화면 표시 크기 조절
 export function updateCanvasSize() {
   let w = 720, h = 720;
   if (state.aspectRatio === "4:5") { w = 720; h = 900; }
@@ -33,6 +33,7 @@ export function updateCanvasSize() {
   render();
 }
 
+// 텍스트 줄바꿈 처리
 function getLines(text, maxWidth, fontSize) {
   if (!text) return [];
   const lines = [];
@@ -53,6 +54,7 @@ function getLines(text, maxWidth, fontSize) {
   return lines;
 }
 
+// 브러시 종류별 그리기
 function drawStroke(stroke) {
   if (stroke.points.length < 2) return;
   const { points, color, size, type } = stroke;
@@ -82,19 +84,24 @@ function drawStroke(stroke) {
   }
 }
 
+// 전체 화면 렌더링
 export function render() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+  // 배경색
   ctx.fillStyle = document.getElementById("bgColor")?.value || "#1e1e24";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+  // 이미지
   if (state.image) {
     const iw = state.image.naturalWidth, ih = state.image.naturalHeight;
     const scale = Math.min(canvas.width / iw, canvas.height / ih);
     ctx.drawImage(state.image, (canvas.width - iw*scale)/2, (canvas.height - ih*scale)/2, iw*scale, ih*scale);
   }
 
+  // 그림
   state.drawings.forEach(drawStroke);
 
+  // 텍스트
   state.texts.forEach(t => {
     ctx.font = `700 ${t.fontSize}px ${t.fontFamily}`;
     ctx.fillStyle = t.color; ctx.textAlign = "center"; ctx.textBaseline = "middle";

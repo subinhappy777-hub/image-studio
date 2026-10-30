@@ -4,25 +4,30 @@ import { handleFile } from "./file-validation.js";
 const STORAGE_KEY = "zzal_card_templates";
 const inlineInput = document.getElementById("inlineTextInput");
 
-// 1. 툴바 및 옵션 패널 전환
+// 1. 상단 툴바 아이콘 클릭 시 기능(패널) 전환
 document.querySelectorAll(".tool-btn").forEach(btn => {
   btn.addEventListener("click", () => {
     const tool = btn.dataset.tool;
+    
     if (tool === "undo") {
       if (state.drawings.length) state.drawings.pop();
       else if (state.texts.length) state.texts.pop();
       else if (state.stickers.length) state.stickers.pop();
       render(); return;
     }
+    
+    // 활성화 스타일 변경
     document.querySelectorAll(".tool-btn").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
+    
+    // 하단 패널 변경
     document.querySelectorAll(".opt-content").forEach(c => c.classList.remove("active"));
     const panel = document.getElementById(`opt-${tool}`);
     if (panel) panel.classList.add("active");
   });
 });
 
-// 2. 하단 메인 액션
+// 2. 하단 메인 버튼 (INPUT / SAVE / OUTPUT)
 document.getElementById("btnInput").addEventListener("click", () => document.getElementById("fileInput").click());
 document.getElementById("fileInput").addEventListener("change", (e) => { handleFile(e.target.files[0]); e.target.value = ""; });
 document.getElementById("uploadPlaceholder").addEventListener("click", () => document.getElementById("fileInput").click());
@@ -42,20 +47,20 @@ document.getElementById("btnSave").addEventListener("click", () => {
 document.getElementById("closeModalBtn").addEventListener("click", () => document.getElementById("templateModal").classList.remove("open"));
 
 document.getElementById("btnOutput").addEventListener("click", () => {
-  render();
+  render(); // 다운로드 전 동기화
   const link = document.createElement("a");
   link.download = `card-studio_${Date.now()}.png`;
   link.href = canvas.toDataURL("image/png");
   document.body.appendChild(link); link.click(); document.body.removeChild(link);
 });
 
-// 3. 줌 및 화면비
+// 3. 이미지 크기(줌) 조절 및 화면비
 document.getElementById("zoomInBtn").addEventListener("click", () => { state.zoomLevel = Math.min(2.0, state.zoomLevel + 0.1); updateCanvasSize(); });
 document.getElementById("zoomOutBtn").addEventListener("click", () => { state.zoomLevel = Math.max(0.5, state.zoomLevel - 0.1); updateCanvasSize(); });
 document.getElementById("aspectRatio").addEventListener("change", (e) => { state.aspectRatio = e.target.value; updateCanvasSize(); });
 document.getElementById("bgColor").addEventListener("input", render);
 
-// 4. 템플릿 목록 렌더링
+// 4. 템플릿 리스트 렌더링
 function renderTemplateList() {
   const listEl = document.getElementById("templateList");
   const templates = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
@@ -84,7 +89,7 @@ function renderTemplateList() {
   }));
 }
 
-// 5. 캔버스 마우스/터치 이벤트
+// 5. 캔버스 마우스/터치 이벤트 (직접 텍스트 입력 & 그림 그리기)
 let isDrawing = false, currentStroke = null;
 
 function getCoords(e) {
@@ -126,7 +131,7 @@ function startAction(e) {
   const { x, y } = getCoords(e);
 
   if (activeTool === "text") {
-    showInlineInput(x, y);
+    showInlineInput(x, y); // T 아이콘 활성화 시 캔버스 클릭 지점에 입력창 생성
   } else if (activeTool === "draw") {
     isDrawing = true;
     currentStroke = {
