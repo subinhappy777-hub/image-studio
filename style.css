@@ -60,7 +60,7 @@ canvas {
 .upload-placeholder:hover { background: #33333d; color: var(--text); }
 .upload-icon { font-size: 48px; margin-bottom: 12px; }
 
-/* 인라인 텍스트 입력창 (캔버스 위에 표시됨) */
+/* 인라인 텍스트 입력창 */
 .inline-text-input {
   position: absolute; display: none; background: transparent; border: 1px dashed var(--accent);
   color: white; font-family: inherit; text-align: center; outline: none;
@@ -127,6 +127,5 @@ input[type="color"] {
 .close-btn {
   width: 100%; padding: 12px; background: var(--line); color: white; border: none; border-radius: 6px; cursor: pointer; margin-top: 12px;
 }
-
 .msg { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); font-size: 14px; }
 .msg.error { color: #ff5c6c; }
