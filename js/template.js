@@ -12,19 +12,19 @@ function saveTemplates(templates) {
 
 export function createTemplate() {
   const templates = getTemplates();
-  const newId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
+  const newId = Date.now().toString();
   const newTemplate = {
     id: newId, name: `템플릿 ${templates.length + 1}`,
-    aspectRatio: state.aspectRatio, text: state.text, posX: state.posX, posY: state.posY,
-    fontSize: state.fontSize, fontFamily: state.fontFamily, color: state.color,
+    aspectRatio: state.aspectRatio,
+    texts: JSON.parse(JSON.stringify(state.texts)),
     imageSrc: state.image ? state.image.src : null,
     stickers: JSON.parse(JSON.stringify(state.stickers)),
     drawings: JSON.parse(JSON.stringify(state.drawings))
   };
   templates.push(newTemplate);
   saveTemplates(templates);
+  alert("현재 상태가 메모리에 저장되었습니다.");
   renderTemplateList();
-  alert("현재 상태가 메모리에 템플릿으로 저장되었습니다.");
 }
 
 export function loadTemplate(id) {
@@ -32,42 +32,38 @@ export function loadTemplate(id) {
   const t = templates.find(t => t.id === id);
   if (!t) return;
 
-  state.aspectRatio = t.aspectRatio; state.text = t.text;
-  state.posX = t.posX; state.posY = t.posY;
-  state.fontSize = t.fontSize; state.fontFamily = t.fontFamily || "system-ui, sans-serif";
-  state.color = t.color; state.stickers = t.stickers || []; state.drawings = t.drawings || [];
+  state.aspectRatio = t.aspectRatio;
+  state.texts = t.texts || [];
+  state.stickers = t.stickers || [];
+  state.drawings = t.drawings || [];
+  state.selectedTextId = null;
   state.selectedStickerId = null;
 
-  updateCanvasSize();
   document.getElementById("aspectRatio").value = state.aspectRatio;
-  document.getElementById("textInput").value = state.text;
-  document.getElementById("fontFamily").value = state.fontFamily;
-  document.getElementById("colorInput").value = state.color;
-
+  
   if (t.imageSrc) {
     const img = new Image();
-    img.onload = () => { state.image = img; state.fileName = "템플릿 이미지"; render(); };
+    img.onload = () => { 
+      state.image = img; 
+      document.getElementById("uploadPlaceholder").style.display = "none";
+      updateCanvasSize(); 
+    };
     img.src = t.imageSrc;
   } else {
-    state.image = null; render();
+    state.image = null; 
+    document.getElementById("uploadPlaceholder").style.display = "flex";
+    updateCanvasSize();
   }
-}
-
-export function deleteTemplate(id) {
-  if (!confirm("삭제하시겠습니까?")) return;
-  let templates = getTemplates().filter(t => t.id !== id);
-  saveTemplates(templates);
-  renderTemplateList();
 }
 
 export function renderTemplateList() {
   const listEl = document.getElementById("templateList");
-  const container = document.getElementById("templateListContainer");
+  const modal = document.getElementById("templateModal");
   const templates = getTemplates();
   listEl.innerHTML = "";
   
   if (templates.length === 0) {
-    listEl.innerHTML = '<li style="color:var(--muted); justify-content:center; border:none; background:transparent;">저장된 템플릿이 없습니다.</li>';
+    listEl.innerHTML = '<li style="justify-content:center;">저장된 템플릿이 없습니다.</li>';
     return;
   }
 
@@ -75,48 +71,17 @@ export function renderTemplateList() {
     const li = document.createElement("li");
     li.innerHTML = `
       <span>${t.name}</span>
-      <div class="btn-group">
-        <button class="load" data-id="${t.id}">불러오기</button>
-        <button class="del" data-id="${t.id}">삭제</button>
+      <div>
+        <button class="load-btn" data-id="${t.id}">불러오기</button>
       </div>
     `;
     listEl.appendChild(li);
   });
 
-  listEl.querySelectorAll(".load").forEach(btn => btn.addEventListener("click", (e) => loadTemplate(e.target.dataset.id)));
-  listEl.querySelectorAll(".del").forEach(btn => btn.addEventListener("click", (e) => deleteTemplate(e.target.dataset.id)));
-}
-
-export function exportTemplates() {
-  const templates = getTemplates();
-  if (templates.length === 0) { alert("내보낼 템플릿이 없습니다."); return; }
-  const dataStr = JSON.stringify(templates, null, 2);
-  const blob = new Blob([dataStr], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url; link.download = `templates_backup_${Date.now()}.json`;
-  document.body.appendChild(link); link.click(); document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-}
-
-export function importTemplates(file) {
-  const msgEl = document.getElementById("fileMsg");
-  msgEl.textContent = ""; msgEl.className = "msg";
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    try {
-      const parsedData = JSON.parse(e.target.result);
-      if (!Array.isArray(parsedData) || parsedData.length === 0) throw new Error("올바른 템플릿 데이터가 아닙니다.");
-      if (!confirm("가져온 템플릿으로 기존 템플릿을 덮어쓰시겠습니까?")) return;
-      saveTemplates(parsedData);
-      renderTemplateList();
-      msgEl.textContent = `성공: ${parsedData.length}개의 템플릿을 복원했습니다.`;
-      msgEl.className = "msg ok";
-    } catch (error) {
-      msgEl.textContent = `거부됨: ${error.message}`;
-      msgEl.className = "msg error";
-    }
-  };
-  reader.readAsText(file);
+  listEl.querySelectorAll(".load-btn").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      loadTemplate(e.target.dataset.id);
+      modal.classList.remove("open");
+    });
+  });
 }

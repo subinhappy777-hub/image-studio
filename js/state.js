@@ -1,23 +1,18 @@
 export const state = {
   image: null,
-  fileName: "",
   aspectRatio: "1:1",
-  text: "여기에 문구를 입력하세요 🎉",
-  posX: 50,
-  posY: 50,
-  fontSize: 48,
-  fontFamily: "system-ui, sans-serif",
-  color: "#ffffff",
+  zoomLevel: 1.0,
+  
+  texts: [], // { id, text, x, y, fontSize, fontFamily, color }
+  selectedTextId: null,
+  
   stickers: [], 
   selectedStickerId: null,
+  
   drawings: [], 
 };
 
-export const LIMITS = {
-  MAX_BYTES: 10 * 1024 * 1024,
-  MAX_SIDE: 8000,
-};
-
+export const LIMITS = { MAX_BYTES: 10 * 1024 * 1024, MAX_SIDE: 8000 };
 export const canvas = document.getElementById("canvas");
 export const ctx = canvas.getContext("2d");
 
@@ -25,18 +20,33 @@ export function updateCanvasSize() {
   let w = 720, h = 720;
   if (state.aspectRatio === "4:5") { w = 720; h = 900; }
   if (state.aspectRatio === "9:16") { w = 720; h = 1280; }
+  
+  const container = document.getElementById("canvasContainer");
+  const maxW = container.clientWidth - 40;
+  const maxH = container.clientHeight - 40;
+  
+  // 캔버스 논리 해상도는 고정, CSS로만 보이는 크기 조절
   canvas.width = w;
   canvas.height = h;
+  
+  const scale = Math.min(maxW / w, maxH / h) * state.zoomLevel;
+  canvas.style.width = `${w * scale}px`;
+  canvas.style.height = `${h * scale}px`;
+  container.style.width = canvas.style.width;
+  container.style.height = canvas.style.height;
+
+  render();
 }
 
-function getLines(text, maxWidth) {
-  if (!text) return [""];
-  const paragraphs = text.split('\n');
+function getLines(text, maxWidth, fontSize) {
+  if (!text) return [];
   const lines = [];
+  const paragraphs = text.split('\n');
+  
+  ctx.font = `700 ${fontSize}px system-ui, sans-serif`;
   paragraphs.forEach(p => {
-    const chars = Array.from(p);
     let currentLine = '';
-    chars.forEach(char => {
+    Array.from(p).forEach(char => {
       const testLine = currentLine + char;
       const metrics = ctx.measureText(testLine);
       if (metrics.width > maxWidth && currentLine) {
@@ -92,39 +102,53 @@ function drawStroke(stroke) {
 
 export function render() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = "#1e1e24";
+  
+  // 배경
+  const bgColor = document.getElementById("bgColor")?.value || "#1e1e24";
+  ctx.fillStyle = bgColor;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   if (state.image) {
-    const iw = state.image.naturalWidth;
-    const ih = state.image.naturalHeight;
+    const iw = state.image.naturalWidth, ih = state.image.naturalHeight;
     const scale = Math.min(canvas.width / iw, canvas.height / ih);
-    const dw = iw * scale;
-    const dh = ih * scale;
-    const dx = (canvas.width - dw) / 2;
-    const dy = (canvas.height - dh) / 2;
+    const dw = iw * scale, dh = ih * scale;
+    const dx = (canvas.width - dw) / 2, dy = (canvas.height - dh) / 2;
     ctx.drawImage(state.image, dx, dy, dw, dh);
   }
 
   state.drawings.forEach(stroke => drawStroke(stroke));
 
-  ctx.font = `700 ${state.fontSize}px ${state.fontFamily}`;
-  ctx.fillStyle = state.color;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
+  // 텍스트 렌더링 (다중 지원)
+  state.texts.forEach(t => {
+    ctx.font = `700 ${t.fontSize}px ${t.fontFamily}`;
+    ctx.fillStyle = t.color;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    
+    const maxWidth = canvas.width - 40;
+    const lines = getLines(t.text, maxWidth, t.fontSize);
+    const lineHeight = t.fontSize * 1.2;
+    const totalHeight = (lines.length - 1) * lineHeight;
+    const startY = ((t.y / 100) * canvas.height) - (totalHeight / 2);
+    const x = (t.x / 100) * canvas.width;
 
-  const maxWidth = canvas.width - 80; 
-  const lines = getLines(state.text, maxWidth);
-  const lineHeight = state.fontSize * 1.3;
-  const totalHeight = (lines.length - 1) * lineHeight;
-  const startY = ((state.posY / 100) * canvas.height) - (totalHeight / 2);
-  const x = (state.posX / 100) * canvas.width;
+    lines.forEach((line, index) => {
+      const y = startY + (index * lineHeight);
+      ctx.fillText(line, x, y);
+    });
 
-  lines.forEach((line, index) => {
-    const y = startY + (index * lineHeight);
-    ctx.fillText(line, x, y);
+    // 선택된 텍스트 가이드
+    if (state.selectedTextId === t.id) {
+      ctx.strokeStyle = "#4f8cff";
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 4]);
+      const w = maxWidth * 0.8;
+      ctx.strokeRect(x - w/2, startY - lineHeight/2, w, totalHeight + lineHeight);
+      ctx.setLineDash([]);
+    }
   });
 
+  // 스티커 렌더링
   state.stickers.forEach(s => {
     const px = (s.x / 100) * canvas.width;
     const py = (s.y / 100) * canvas.height;
