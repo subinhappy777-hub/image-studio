@@ -15,7 +15,7 @@ body {
   min-height: 100vh; overflow: hidden;
 }
 
-/* 전체 앱 중앙 정렬 */
+/* 앱 전체 중앙 정렬 */
 .app-wrapper {
   width: 100%; height: 100vh; display: flex; justify-content: center; align-items: center;
 }
@@ -53,8 +53,6 @@ body {
 canvas {
   display: block; width: 100%; height: 100%; object-fit: contain; cursor: crosshair;
 }
-
-/* 업로드 UI (배경보다 밝은 회색 박스) */
 .upload-placeholder {
   position: absolute; top: 0; left: 0; right: 0; bottom: 0;
   display: flex; flex-direction: column; justify-content: center; align-items: center;

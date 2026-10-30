@@ -24,24 +24,21 @@
     <!-- 중앙 뷰어 영역 -->
     <main class="viewer-area">
       <div class="canvas-container" id="canvasContainer">
-        <!-- 업로드 전 UI -->
         <div id="uploadPlaceholder" class="upload-placeholder">
           <div class="upload-icon">📁</div>
           <p>클릭하여 이미지를 업로드하세요</p>
         </div>
-        <!-- 캔버스 및 인라인 텍스트 입력 -->
         <canvas id="canvas" width="720" height="720"></canvas>
         <input type="text" id="inlineTextInput" class="inline-text-input" />
       </div>
 
-      <!-- 우측 하단 줌 컨트롤 -->
       <div class="zoom-controls">
         <button id="zoomInBtn" title="확대">➕</button>
         <button id="zoomOutBtn" title="축소">➖</button>
       </div>
     </main>
 
-    <!-- 하단 편집 옵션 패널 (아이콘 선택 시 내용 변경) -->
+    <!-- 하단 편집 옵션 패널 -->
     <div class="option-panel" id="optionPanel">
       <div id="opt-select" class="opt-content active">
         <span class="hint">스티커나 텍스트를 선택하고 드래그하세요.</span>
@@ -118,7 +115,7 @@
 
 <div id="fileMsg" class="msg"></div>
 
-<!-- 스크립트 연결 -->
+<!-- JS 파일 연결 (중요: type="module" 유지) -->
 <script type="module" src="js/main.js"></script>
 </body>
 </html>
