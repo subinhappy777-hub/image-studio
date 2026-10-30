@@ -115,6 +115,9 @@ function getCurrentState() {
   return {
     aspectRatio: state.aspectRatio,
 
+    // ★ 새로 추가: 사진 프레임 저장
+    frameType: state.frameType || "none",
+
     texts: clone(state.texts),
 
     drawings: clone(state.drawings),
@@ -214,6 +217,7 @@ export async function loadTemplate(id) {
     const source =
       template.imageData || template.imageSrc;
 
+    // 이미지 데이터 검증
     if (source) {
       if (
         !/^data:image\/(png|jpeg);base64,/i.test(source)
@@ -230,42 +234,75 @@ export async function loadTemplate(id) {
       });
     }
 
-    // 이미지 복원이 성공한 뒤 상태 변경
-    const allowedRatios = ["1:1", "4:5", "16:9"];
+    // ======================================
+    // 이미지 복원 성공 후 상태 변경
+    // ======================================
+
+    const allowedRatios = [
+      "1:1",
+      "4:5",
+      "16:9"
+    ];
+
+    // ★ 새로 추가: 허용되는 프레임 종류
+    const allowedFrames = [
+      "none",
+      "heart",
+      "sparkle",
+      "lace",
+      "polaroid",
+      "y2k"
+    ];
 
     state.image = image;
 
+    // 화면비 복원
     state.aspectRatio =
       allowedRatios.includes(template.aspectRatio)
         ? template.aspectRatio
         : "1:1";
 
+    // ======================================
+    // ★ 새로 추가: 사진 프레임 복원
+    // ======================================
+
+    state.frameType =
+      allowedFrames.includes(template.frameType)
+        ? template.frameType
+        : "none";
+
+    // 문구 복원
     state.texts = clone(
       Array.isArray(template.texts)
         ? template.texts
         : []
     );
 
+    // 그림 복원
     state.drawings = clone(
       Array.isArray(template.drawings)
         ? template.drawings
         : []
     );
 
+    // 스티커 복원
     state.stickers = clone(
       Array.isArray(template.stickers)
         ? template.stickers
         : []
     );
 
+    // 선택 상태 초기화
     state.selectedTextId = null;
     state.selectedStickerId = null;
 
+    // 이미지 크기 복원
     state.imageScale =
       Number.isFinite(template.imageScale)
         ? template.imageScale
         : 1;
 
+    // 이미지 위치 복원
     state.imageX =
       Number.isFinite(template.imageX)
         ? template.imageX
@@ -276,6 +313,7 @@ export async function loadTemplate(id) {
         ? template.imageY
         : 50;
 
+    // 배경 색상 복원
     state.background =
       /^#[0-9a-f]{6}$/i.test(template.background || "")
         ? template.background
@@ -283,17 +321,26 @@ export async function loadTemplate(id) {
 
     currentTemplateId = id;
 
+    // ======================================
     // HTML 설정값 복원
+    // ======================================
+
     $("aspectRatio").value = state.aspectRatio;
+
     $("bgColor").value = state.background;
+
+    // ★ 새로 추가: 프레임 선택창 동기화
+    $("frameType").value = state.frameType;
 
     $("imageScale").value = String(
       Math.round(state.imageScale * 100)
     );
 
+    // 이미지 업로드 안내 표시 여부
     $("uploadPlaceholder").style.display =
       image ? "none" : "flex";
 
+    // 캔버스 크기 및 화면 갱신
     updateCanvasSize();
 
     setStatus(

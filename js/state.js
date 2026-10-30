@@ -7,6 +7,9 @@ export const state = {
   aspectRatio: "1:1",
   zoomLevel: 1,
 
+  // ★ 새로 추가: 사진 프레임
+  frameType: "none",
+
   texts: [],
   drawings: [],
   stickers: [],
@@ -93,8 +96,15 @@ export function updateCanvasSize() {
     availableHeight / height
   ) * state.zoomLevel;
 
-  const displayWidth = Math.max(1, Math.round(width * scale));
-  const displayHeight = Math.max(1, Math.round(height * scale));
+  const displayWidth = Math.max(
+    1,
+    Math.round(width * scale)
+  );
+
+  const displayHeight = Math.max(
+    1,
+    Math.round(height * scale)
+  );
 
   canvas.style.width = `${displayWidth}px`;
   canvas.style.height = `${displayHeight}px`;
@@ -139,7 +149,7 @@ function wrapText(text, maxWidth) {
 }
 
 // ======================================
-// 8. 이미지 렌더링
+// 8. 배경 그리기
 // ======================================
 
 function drawBackground() {
@@ -152,6 +162,10 @@ function drawBackground() {
     canvas.height
   );
 }
+
+// ======================================
+// 9. 이미지 그리기
+// ======================================
 
 function drawImage() {
   if (!state.image) return;
@@ -185,11 +199,11 @@ function drawImage() {
 }
 
 // ======================================
-// 글리터 펜 그리기
+// 10. 글리터 펜
 // ======================================
 
-// 같은 위치에 항상 같은 반짝이가 나타나도록
-// 난수 대신 좌표 기반 계산을 사용합니다.
+// 같은 위치에 같은 반짝이가 표시되도록
+// 일정한 난수 값을 생성합니다.
 function glitterRandom(seed) {
   const value = Math.sin(seed * 127.1) * 43758.5453;
   return value - Math.floor(value);
@@ -203,12 +217,16 @@ function drawGlitterStroke(stroke) {
   const width = canvas.width;
   const height = canvas.height;
 
-  const size = Math.max(2, Number(stroke.size) || 6);
+  const size = Math.max(
+    2,
+    Number(stroke.size) || 6
+  );
 
   ctx.save();
 
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
+
   ctx.strokeStyle = stroke.color;
   ctx.lineWidth = size * 0.65;
 
@@ -243,12 +261,17 @@ function drawGlitterStroke(stroke) {
   ctx.shadowBlur = 0;
 
   const drawSparkle = (x, y, radius, seed) => {
-    const angle = glitterRandom(seed + 1) * Math.PI * 2;
+    const angle =
+      glitterRandom(seed + 1) * Math.PI * 2;
 
-    const distance = glitterRandom(seed + 2) * size * 2;
+    const distance =
+      glitterRandom(seed + 2) * size * 2;
 
-    const sx = x + Math.cos(angle) * distance;
-    const sy = y + Math.sin(angle) * distance;
+    const sx =
+      x + Math.cos(angle) * distance;
+
+    const sy =
+      y + Math.sin(angle) * distance;
 
     ctx.fillStyle =
       glitterRandom(seed + 3) > 0.5
@@ -257,30 +280,46 @@ function drawGlitterStroke(stroke) {
 
     // 작은 반짝이 점
     ctx.beginPath();
-    ctx.arc(sx, sy, radius, 0, Math.PI * 2);
+    ctx.arc(
+      sx,
+      sy,
+      radius,
+      0,
+      Math.PI * 2
+    );
     ctx.fill();
 
-    // 십자 모양의 반짝이
+    // 십자 모양 반짝이
     if (glitterRandom(seed + 4) > 0.72) {
       const length = radius * 3;
 
       ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = Math.max(1, radius * 0.45);
+      ctx.lineWidth = Math.max(
+        1,
+        radius * 0.45
+      );
 
       ctx.beginPath();
+
       ctx.moveTo(sx - length, sy);
       ctx.lineTo(sx + length, sy);
 
       ctx.moveTo(sx, sy - length);
       ctx.lineTo(sx, sy + length);
+
       ctx.stroke();
     }
   };
 
-  // 선을 따라 일정 간격으로 입자를 배치
+  // 선을 따라 일정한 간격으로 입자 배치
   let previous = null;
   let travelled = 0;
-  const spacing = Math.max(4, size * 0.7);
+
+  const spacing = Math.max(
+    4,
+    size * 0.7
+  );
+
   let particleIndex = 0;
 
   for (const point of points) {
@@ -304,6 +343,7 @@ function drawGlitterStroke(stroke) {
 
     const dx = current.x - previous.x;
     const dy = current.y - previous.y;
+
     const length = Math.hypot(dx, dy);
 
     if (length === 0) continue;
@@ -313,8 +353,11 @@ function drawGlitterStroke(stroke) {
     while (distance <= length) {
       const ratio = distance / length;
 
-      const x = previous.x + dx * ratio;
-      const y = previous.y + dy * ratio;
+      const x =
+        previous.x + dx * ratio;
+
+      const y =
+        previous.y + dy * ratio;
 
       const radius =
         Math.max(1.5, size * 0.18) *
@@ -328,10 +371,13 @@ function drawGlitterStroke(stroke) {
       );
 
       particleIndex++;
+
       distance += spacing;
     }
 
-    travelled = length - (distance - spacing);
+    // ★ 입자 간격 계산 개선
+    travelled = (travelled + length) % spacing;
+
     previous = current;
   }
 
@@ -339,7 +385,7 @@ function drawGlitterStroke(stroke) {
 }
 
 // ======================================
-// 그림 렌더링
+// 11. 그림 렌더링
 // ======================================
 
 function drawStrokes() {
@@ -358,8 +404,11 @@ function drawStrokes() {
     ctx.beginPath();
 
     stroke.points.forEach((point, index) => {
-      const x = point.x * canvas.width / 100;
-      const y = point.y * canvas.height / 100;
+      const x =
+        point.x * canvas.width / 100;
+
+      const y =
+        point.y * canvas.height / 100;
 
       if (index === 0) {
         ctx.moveTo(x, y);
@@ -400,7 +449,7 @@ function drawStrokes() {
 }
 
 // ======================================
-// 10. 문구 렌더링
+// 12. 문구 렌더링
 // ======================================
 
 function drawTexts() {
@@ -409,7 +458,10 @@ function drawTexts() {
 
     const size = Math.max(
       12,
-      Math.min(120, Number(text.fontSize) || 44)
+      Math.min(
+        120,
+        Number(text.fontSize) || 44
+      )
     );
 
     const allowedFonts = [
@@ -444,8 +496,11 @@ function drawTexts() {
       (lines.length - 1) * lineHeight / 2;
 
     lines.forEach((line, index) => {
-      const x = text.x * canvas.width / 100;
-      const y = startY + index * lineHeight;
+      const x =
+        text.x * canvas.width / 100;
+
+      const y =
+        startY + index * lineHeight;
 
       ctx.strokeText(line, x, y);
       ctx.fillText(line, x, y);
@@ -456,19 +511,24 @@ function drawTexts() {
 }
 
 // ======================================
-// 스티커 렌더링
+// 13. 스티커 렌더링
 // ======================================
 
 function drawStickers() {
   for (const sticker of state.stickers) {
     ctx.save();
 
-    const x = sticker.x * canvas.width / 100;
-    const y = sticker.y * canvas.height / 100;
+    const x =
+      sticker.x * canvas.width / 100;
 
-    const size = Number(sticker.size) || 120;
+    const y =
+      sticker.y * canvas.height / 100;
 
-    ctx.font = `${size}px "Segoe UI Emoji", "Apple Color Emoji", sans-serif`;
+    const size =
+      Number(sticker.size) || 120;
+
+    ctx.font =
+      `${size}px "Segoe UI Emoji", "Apple Color Emoji", sans-serif`;
 
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -484,7 +544,257 @@ function drawStickers() {
 }
 
 // ======================================
-// 전체 렌더링
+// 14. ★ 사진 프레임 그리기
+// ======================================
+
+function drawFrame() {
+  const type = state.frameType;
+
+  // 프레임을 사용하지 않는 경우
+  if (!type || type === "none") return;
+
+  const w = canvas.width;
+  const h = canvas.height;
+
+  // 화면비에 관계없이 일정한 비율 유지
+  const unit = Math.min(w, h);
+
+  const margin = unit * 0.035;
+
+  ctx.save();
+
+  // ======================================
+  // 💗 1. 핑크 하트 프레임
+  // ======================================
+
+  if (type === "heart") {
+    ctx.strokeStyle = "#ff7eb6";
+    ctx.lineWidth = unit * 0.025;
+
+    ctx.strokeRect(
+      margin,
+      margin,
+      w - margin * 2,
+      h - margin * 2
+    );
+
+    ctx.font = `${unit * 0.055}px sans-serif`;
+
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    const hearts = [
+      "💗",
+      "💕",
+      "💖",
+      "💗"
+    ];
+
+    for (let i = 0; i < 8; i++) {
+      const x = (i + 0.5) * w / 8;
+
+      ctx.fillText(
+        hearts[i % hearts.length],
+        x,
+        margin
+      );
+
+      ctx.fillText(
+        hearts[i % hearts.length],
+        x,
+        h - margin
+      );
+    }
+  }
+
+  // ======================================
+  // ✨ 2. 반짝이 프레임
+  // ======================================
+
+  else if (type === "sparkle") {
+    ctx.strokeStyle = "#ffe58f";
+    ctx.lineWidth = unit * 0.018;
+
+    ctx.shadowColor = "#fff1a8";
+    ctx.shadowBlur = unit * 0.025;
+
+    ctx.strokeRect(
+      margin,
+      margin,
+      w - margin * 2,
+      h - margin * 2
+    );
+
+    ctx.shadowBlur = 0;
+
+    ctx.font = `${unit * 0.055}px sans-serif`;
+
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    for (let i = 0; i < 9; i++) {
+      const x = i * w / 8;
+
+      ctx.fillText("✨", x, margin);
+      ctx.fillText("✨", x, h - margin);
+    }
+  }
+
+  // ======================================
+  // 🎀 3. 러블리 레이스 프레임
+  // ======================================
+
+  else if (type === "lace") {
+    ctx.strokeStyle = "#ffb6d5";
+    ctx.lineWidth = unit * 0.035;
+
+    ctx.strokeRect(
+      margin,
+      margin,
+      w - margin * 2,
+      h - margin * 2
+    );
+
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = unit * 0.008;
+
+    ctx.setLineDash([
+      unit * 0.012,
+      unit * 0.012
+    ]);
+
+    ctx.strokeRect(
+      margin,
+      margin,
+      w - margin * 2,
+      h - margin * 2
+    );
+
+    ctx.setLineDash([]);
+
+    ctx.font = `${unit * 0.07}px sans-serif`;
+
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    ctx.fillText("🎀", margin, margin);
+    ctx.fillText("🎀", w - margin, margin);
+
+    ctx.fillText("🎀", margin, h - margin);
+    ctx.fillText("🎀", w - margin, h - margin);
+  }
+
+  // ======================================
+  // 📸 4. 폴라로이드 프레임
+  // ======================================
+
+  else if (type === "polaroid") {
+    const side = unit * 0.06;
+    const bottom = unit * 0.16;
+
+    ctx.fillStyle = "#ffffff";
+
+    // 왼쪽 흰색 테두리
+    ctx.fillRect(
+      0,
+      0,
+      side,
+      h
+    );
+
+    // 오른쪽 흰색 테두리
+    ctx.fillRect(
+      w - side,
+      0,
+      side,
+      h
+    );
+
+    // 상단 흰색 테두리
+    ctx.fillRect(
+      0,
+      0,
+      w,
+      side
+    );
+
+    // 하단 넓은 여백
+    ctx.fillRect(
+      0,
+      h - bottom,
+      w,
+      bottom
+    );
+
+    ctx.fillStyle = "#777777";
+
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    ctx.font =
+      `italic ${unit * 0.035}px cursive`;
+
+    ctx.fillText(
+      "my lovely moment ♡",
+      w / 2,
+      h - bottom / 2
+    );
+  }
+
+  // ======================================
+  // 💿 5. Y2K 레트로 프레임
+  // ======================================
+
+  else if (type === "y2k") {
+    const gradient = ctx.createLinearGradient(
+      0,
+      0,
+      w,
+      h
+    );
+
+    gradient.addColorStop(
+      0,
+      "#8be9ff"
+    );
+
+    gradient.addColorStop(
+      0.5,
+      "#d8a8ff"
+    );
+
+    gradient.addColorStop(
+      1,
+      "#ff9acb"
+    );
+
+    ctx.strokeStyle = gradient;
+    ctx.lineWidth = unit * 0.045;
+
+    ctx.strokeRect(
+      margin,
+      margin,
+      w - margin * 2,
+      h - margin * 2
+    );
+
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    ctx.font = `${unit * 0.06}px sans-serif`;
+
+    ctx.fillText("💿", margin, margin);
+    ctx.fillText("⭐", w - margin, margin);
+
+    ctx.fillText("💖", margin, h - margin);
+    ctx.fillText("🦋", w - margin, h - margin);
+  }
+
+  ctx.restore();
+}
+
+// ======================================
+// 15. 전체 렌더링
 // ======================================
 
 export function render() {
@@ -495,9 +805,21 @@ export function render() {
     canvas.height
   );
 
+  // 1. 배경
   drawBackground();
+
+  // 2. 이미지
   drawImage();
+
+  // 3. 그림 및 글리터
   drawStrokes();
+
+  // 4. 스티커
   drawStickers();
+
+  // 5. 문구
   drawTexts();
+
+  // 6. ★ 사진 프레임을 가장 위에 표시
+  drawFrame();
 }

@@ -1,3 +1,7 @@
+/* ======================================
+   1. 기본 설정
+====================================== */
+
 :root {
   font-family: "Malgun Gothic", system-ui, sans-serif;
   color: #1b2740;
@@ -29,7 +33,11 @@ button {
   padding: 0 20px;
 }
 
-/* 제목 */
+
+/* ======================================
+   2. 제목
+====================================== */
+
 .page-head {
   display: flex;
   justify-content: space-between;
@@ -60,7 +68,11 @@ button {
   font-size: 12px;
 }
 
-/* 전체 편집 영역 */
+
+/* ======================================
+   3. 전체 편집 영역
+====================================== */
+
 .workspace {
   display: grid;
   grid-template-columns: 78px minmax(0, 1fr) 270px;
@@ -72,7 +84,11 @@ button {
   box-shadow: 0 12px 35px #20365b15;
 }
 
-/* 왼쪽 도구 */
+
+/* ======================================
+   4. 왼쪽 도구 모음
+====================================== */
+
 .toolbar {
   display: flex;
   flex-direction: column;
@@ -106,7 +122,11 @@ button {
   color: #2055c9;
 }
 
-/* 중앙 편집기 */
+
+/* ======================================
+   5. 중앙 편집기
+====================================== */
+
 .canvas-zone {
   min-width: 0;
   display: flex;
@@ -157,6 +177,11 @@ canvas {
   cursor: crosshair;
 }
 
+
+/* ======================================
+   6. 이미지 업로드 안내
+====================================== */
+
 #uploadPlaceholder {
   position: absolute;
   inset: 0;
@@ -186,7 +211,11 @@ canvas {
   font-size: 12px;
 }
 
-/* 확대 및 축소 */
+
+/* ======================================
+   7. 확대 및 축소
+====================================== */
+
 .zoom {
   display: flex;
   justify-content: center;
@@ -209,7 +238,11 @@ canvas {
   font-size: 13px;
 }
 
-/* 오른쪽 설정 */
+
+/* ======================================
+   8. 오른쪽 편집 설정
+====================================== */
+
 .options {
   padding: 22px;
   border-left: 1px solid #e6ebf4;
@@ -269,7 +302,11 @@ input[type="color"] {
   line-height: 1.7;
 }
 
-/* 하단 버튼 */
+
+/* ======================================
+   9. 하단 버튼
+====================================== */
+
 .actions {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -302,7 +339,11 @@ input[type="color"] {
   font-weight: normal;
 }
 
-/* 상태 메시지 */
+
+/* ======================================
+   10. 상태 메시지
+====================================== */
+
 .status {
   padding: 12px 15px;
   margin-top: 15px;
@@ -317,7 +358,11 @@ input[type="color"] {
   color: #a32929;
 }
 
-/* 템플릿 창 */
+
+/* ======================================
+   11. 템플릿 관리 창
+====================================== */
+
 .modal {
   display: none;
   position: fixed;
@@ -396,84 +441,10 @@ input[type="color"] {
   color: #a22;
 }
 
-/* 태블릿 */
-@media (max-width: 850px) {
-  .workspace {
-    grid-template-columns: 65px minmax(0, 1fr);
-  }
 
-  .options {
-    grid-column: 1 / -1;
-    border-left: none;
-    border-top: 1px solid #e6ebf4;
-  }
-
-  .canvas-stage {
-    min-height: 350px;
-  }
-}
-
-/* 스마트폰 */
-@media (max-width: 520px) {
-  .app {
-    padding: 0 10px;
-    margin: 15px auto;
-  }
-
-  .page-head h1 {
-    font-size: 22px;
-  }
-
-  .badge {
-    display: none;
-  }
-
-  .workspace {
-    grid-template-columns: 1fr;
-  }
-
-  .toolbar {
-    flex-direction: row;
-    justify-content: space-around;
-    border-right: none;
-    border-bottom: 1px solid #e6ebf4;
-  }
-
-  .tool-btn {
-    font-size: 22px;
-  }
-
-  .canvas-stage {
-    min-height: 300px;
-    padding: 8px;
-  }
-
-  .options {
-    grid-column: 1;
-  }
-
-  .actions {
-    gap: 7px;
-  }
-
-  .actions button {
-    padding: 13px 5px;
-    font-size: 13px;
-  }
-
-  .actions small {
-    font-size: 10px;
-  }
-
-  #templateList li {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-}
-
-/* ==================================
-   스티커 선택 영역
-================================== */
+/* ======================================
+   12. 스티커 선택 영역
+====================================== */
 
 .sticker-grid {
   display: grid;
@@ -533,8 +504,169 @@ input[type="color"] {
   color: #be123c;
 }
 
-/* 모바일 화면 */
+#deleteStickerBtn:hover {
+  background: #fecdd3;
+}
+
+
+/* ======================================
+   13. 사진 꾸미기 및 프레임 설정
+   ★ 새로 추가한 부분 ★
+====================================== */
+
+/* 사진 꾸미기 제목 */
+#opt-image h3 {
+  margin: 10px 0 0;
+  padding: 12px 14px;
+
+  font-size: 15px;
+  font-weight: 700;
+
+  color: #be185d;
+  background: linear-gradient(
+    135deg,
+    #fff0f6,
+    #fce7f3
+  );
+
+  border: 1px solid #fbcfe8;
+  border-radius: 12px;
+}
+
+/* 사진 프레임 선택창 */
+#frameType {
+  width: 100%;
+  padding: 12px 14px;
+
+  background: #fffafd;
+  color: #334155;
+
+  border: 2px solid #fbcfe8;
+  border-radius: 12px;
+
+  font-size: 13px;
+
+  cursor: pointer;
+
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s,
+    background 0.2s;
+}
+
+/* 마우스를 올렸을 때 */
+#frameType:hover {
+  border-color: #f9a8d4;
+  background: #fff1f8;
+}
+
+/* 선택창을 클릭했을 때 */
+#frameType:focus {
+  outline: none;
+  border-color: #ec4899;
+  box-shadow: 0 0 0 3px #fbcfe880;
+}
+
+/* 프레임 설명 문구 */
+#opt-image .hint {
+  padding: 10px 12px;
+  background: #f8fafc;
+  border-radius: 9px;
+}
+
+/* 사진 프레임 아래 설명 */
+#frameType + .hint {
+  background: #fff1f8;
+  color: #9d4770;
+  border: 1px solid #fce7f3;
+}
+
+
+/* ======================================
+   14. 태블릿 화면
+====================================== */
+
+@media (max-width: 850px) {
+
+  .workspace {
+    grid-template-columns: 65px minmax(0, 1fr);
+  }
+
+  .options {
+    grid-column: 1 / -1;
+    border-left: none;
+    border-top: 1px solid #e6ebf4;
+  }
+
+  .canvas-stage {
+    min-height: 350px;
+  }
+
+}
+
+
+/* ======================================
+   15. 스마트폰 화면
+====================================== */
+
 @media (max-width: 520px) {
+
+  .app {
+    padding: 0 10px;
+    margin: 15px auto;
+  }
+
+  .page-head h1 {
+    font-size: 22px;
+  }
+
+  .badge {
+    display: none;
+  }
+
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .toolbar {
+    flex-direction: row;
+    justify-content: space-around;
+    border-right: none;
+    border-bottom: 1px solid #e6ebf4;
+  }
+
+  .tool-btn {
+    font-size: 22px;
+  }
+
+  .canvas-stage {
+    min-height: 300px;
+    padding: 8px;
+  }
+
+  .options {
+    grid-column: 1;
+  }
+
+  .actions {
+    gap: 7px;
+  }
+
+  .actions button {
+    padding: 13px 5px;
+    font-size: 13px;
+  }
+
+  .actions small {
+    font-size: 10px;
+  }
+
+  #templateList li {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  /* 스티커 4열 배치 */
   .sticker-grid {
     grid-template-columns: repeat(4, 1fr);
   }
@@ -543,4 +675,15 @@ input[type="color"] {
     min-height: 58px;
     font-size: 29px;
   }
+
+  /* 모바일 프레임 설정 */
+  #opt-image h3 {
+    font-size: 14px;
+  }
+
+  #frameType {
+    font-size: 13px;
+    padding: 11px;
+  }
+
 }

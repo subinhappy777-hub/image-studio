@@ -28,6 +28,7 @@ let drag = null;
 // 현재 선택한 캐릭터
 let selectedStickerEmoji = "🐱";
 
+// 실행 취소 기록
 const history = [];
 const HISTORY_LIMIT = 30;
 
@@ -45,7 +46,10 @@ function snapshot() {
     imageY: state.imageY,
     imageScale: state.imageScale,
 
-    background: state.background
+    background: state.background,
+
+    // ★ 새로 추가: 프레임 기록
+    frameType: state.frameType || "none"
   };
 }
 
@@ -74,11 +78,16 @@ function undo() {
   state.selectedTextId = null;
   state.selectedStickerId = null;
 
+  // 이미지 크기 복원
   $("imageScale").value = String(
     Math.round(state.imageScale * 100)
   );
 
+  // 배경 색상 복원
   $("bgColor").value = state.background;
+
+  // ★ 새로 추가: 프레임 선택 상태 복원
+  $("frameType").value = state.frameType || "none";
 
   render();
 
@@ -219,7 +228,7 @@ document.querySelectorAll(".tool-btn").forEach(button => {
 });
 
 // ======================================
-// 스티커 선택
+// 9. 스티커 선택
 // ======================================
 
 document.querySelectorAll(".sticker-item").forEach(button => {
@@ -248,7 +257,7 @@ document.querySelectorAll(".sticker-item").forEach(button => {
 document.querySelector(".sticker-item")?.classList.add("selected");
 
 // ======================================
-// 스티커 추가
+// 10. 스티커 추가
 // ======================================
 
 function addSticker(x, y) {
@@ -274,14 +283,17 @@ function addSticker(x, y) {
 }
 
 // ======================================
-// 클릭한 스티커 찾기
+// 11. 클릭한 스티커 찾기
 // ======================================
 
 function pickSticker(x, y) {
   return [...state.stickers].reverse().find(sticker => {
 
-    const width = sticker.size / canvas.width * 100;
-    const height = sticker.size / canvas.height * 100;
+    const width =
+      sticker.size / canvas.width * 100;
+
+    const height =
+      sticker.size / canvas.height * 100;
 
     return (
       Math.abs(sticker.x - x) <= width / 2 &&
@@ -291,7 +303,7 @@ function pickSticker(x, y) {
 }
 
 // ======================================
-// 스티커 크기 변경
+// 12. 스티커 크기 변경
 // ======================================
 
 $("stickerSize").addEventListener("change", event => {
@@ -301,15 +313,21 @@ $("stickerSize").addEventListener("change", event => {
 
   if (!sticker) return;
 
+  const newSize = Number(event.target.value);
+
+  if (sticker.size === newSize) return;
+
   remember();
 
-  sticker.size = Number(event.target.value);
+  sticker.size = newSize;
 
   render();
+
+  setStatus("스티커 크기를 변경했습니다.");
 });
 
 // ======================================
-// 스티커 삭제
+// 13. 스티커 삭제
 // ======================================
 
 $("deleteStickerBtn").addEventListener("click", () => {
@@ -337,7 +355,7 @@ $("deleteStickerBtn").addEventListener("click", () => {
 });
 
 // ======================================
-// 9. 문구 추가 버튼
+// 14. 문구 추가 버튼
 // ======================================
 
 $("addTextBtn").addEventListener("click", () => {
@@ -345,76 +363,216 @@ $("addTextBtn").addEventListener("click", () => {
 });
 
 // ======================================
-// 10. 문구 내용 수정
+// 15. 문구 내용 수정
 // ======================================
+
+// 입력을 시작할 때 한 번만 이전 상태 저장
+let textEditStarted = false;
+
+$("textInput").addEventListener("focus", () => {
+  textEditStarted = false;
+});
 
 $("textInput").addEventListener("input", event => {
   const text = selectedText();
 
   if (!text) return;
 
-  text.text = event.target.value.slice(0, 300);
+  const newValue = event.target.value.slice(0, 300);
+
+  if (text.text === newValue) return;
+
+  if (!textEditStarted) {
+    remember();
+    textEditStarted = true;
+  }
+
+  text.text = newValue;
 
   render();
 });
 
+$("textInput").addEventListener("blur", () => {
+  textEditStarted = false;
+});
+
 // ======================================
-// 11. 글자 크기
+// 16. 글자 크기
 // ======================================
+
+let fontSizeChanging = false;
+
+$("fontSize").addEventListener("pointerdown", () => {
+  fontSizeChanging = false;
+});
 
 $("fontSize").addEventListener("input", event => {
   $("fontSizeValue").textContent = event.target.value;
 
   const text = selectedText();
 
-  if (text) {
-    text.fontSize = Number(event.target.value);
-    render();
+  if (!text) return;
+
+  const newSize = Number(event.target.value);
+
+  if (text.fontSize === newSize) return;
+
+  if (!fontSizeChanging) {
+    remember();
+    fontSizeChanging = true;
   }
+
+  text.fontSize = newSize;
+
+  render();
+});
+
+$("fontSize").addEventListener("change", () => {
+  fontSizeChanging = false;
 });
 
 // ======================================
-// 12. 글자 색상
+// 17. 글자 색상
 // ======================================
+
+let textColorChanging = false;
+
+$("colorInput").addEventListener("focus", () => {
+  textColorChanging = false;
+});
 
 $("colorInput").addEventListener("input", event => {
   const text = selectedText();
 
-  if (text) {
-    text.color = event.target.value;
-    render();
+  if (!text) return;
+
+  if (text.color === event.target.value) return;
+
+  if (!textColorChanging) {
+    remember();
+    textColorChanging = true;
   }
+
+  text.color = event.target.value;
+
+  render();
+});
+
+$("colorInput").addEventListener("change", () => {
+  textColorChanging = false;
 });
 
 // ======================================
-// 13. 글꼴 변경
+// 18. 글꼴 변경
 // ======================================
 
 $("fontFamily").addEventListener("change", event => {
   const text = selectedText();
 
-  if (text) {
-    text.fontFamily = event.target.value;
-    render();
-  }
+  if (!text) return;
+
+  if (text.fontFamily === event.target.value) return;
+
+  remember();
+
+  text.fontFamily = event.target.value;
+
+  render();
+
+  setStatus("글꼴을 변경했습니다.");
 });
 
 // ======================================
-// 14. 이미지 설정
+// 19. 이미지 설정
 // ======================================
 
+// 배경 색상 변경
+let backgroundChanging = false;
+
+$("bgColor").addEventListener("focus", () => {
+  backgroundChanging = false;
+});
+
 $("bgColor").addEventListener("input", event => {
+  if (state.background === event.target.value) return;
+
+  if (!backgroundChanging) {
+    remember();
+    backgroundChanging = true;
+  }
+
   state.background = event.target.value;
+
   render();
+});
+
+$("bgColor").addEventListener("change", () => {
+  backgroundChanging = false;
+});
+
+// 이미지 크기 변경
+let imageScaleChanging = false;
+
+$("imageScale").addEventListener("pointerdown", () => {
+  imageScaleChanging = false;
 });
 
 $("imageScale").addEventListener("input", event => {
-  state.imageScale = Number(event.target.value) / 100;
+  const newScale = Number(event.target.value) / 100;
+
+  if (state.imageScale === newScale) return;
+
+  if (!imageScaleChanging) {
+    remember();
+    imageScaleChanging = true;
+  }
+
+  state.imageScale = newScale;
+
   render();
 });
 
+$("imageScale").addEventListener("change", () => {
+  imageScaleChanging = false;
+});
+
 // ======================================
-// 15. 이미지 업로드
+// 20. ★ 사진 프레임 선택 기능
+// ======================================
+
+// HTML의 <select id="frameType">과 연결
+$("frameType").addEventListener("change", event => {
+  const newFrame = event.target.value;
+
+  // 기존 프레임과 같으면 변경하지 않음
+  if (state.frameType === newFrame) return;
+
+  // 변경 전 상태 저장
+  remember();
+
+  // 선택한 프레임 적용
+  state.frameType = newFrame;
+
+  // 캔버스 다시 그리기
+  render();
+
+  // 사용자 안내 메시지
+  const frameNames = {
+    none: "프레임 없음",
+    heart: "💗 핑크 하트",
+    sparkle: "✨ 반짝이",
+    lace: "🎀 러블리 레이스",
+    polaroid: "📸 폴라로이드",
+    y2k: "💿 Y2K 레트로"
+  };
+
+  setStatus(
+    `${frameNames[newFrame] || "사진"} 프레임을 적용했습니다.`
+  );
+});
+
+// ======================================
+// 21. 이미지 업로드
 // ======================================
 
 $("btnInput").addEventListener("click", () => {
@@ -436,16 +594,17 @@ $("fileInput").addEventListener("change", async event => {
 });
 
 // ======================================
-// 16. 화면비 변경
+// 22. 화면비 변경
 // ======================================
 
 $("aspectRatio").addEventListener("change", event => {
   state.aspectRatio = event.target.value;
+
   updateCanvasSize();
 });
 
 // ======================================
-// 17. 확대·축소
+// 23. 확대·축소
 // ======================================
 
 $("zoomInBtn").addEventListener("click", () => {
@@ -467,7 +626,7 @@ $("zoomOutBtn").addEventListener("click", () => {
 });
 
 // ======================================
-// 18. 캔버스 편집 시작
+// 24. 캔버스 편집 시작
 // ======================================
 
 canvas.addEventListener("pointerdown", event => {
@@ -475,7 +634,10 @@ canvas.addEventListener("pointerdown", event => {
 
   const point = getCoords(event);
 
+  // ======================================
   // 문구 이동 및 선택
+  // ======================================
+
   if (activeTool === "text") {
     const text = pickText(point.x, point.y);
 
@@ -504,7 +666,10 @@ canvas.addEventListener("pointerdown", event => {
     }
   }
 
+  // ======================================
   // 그림 그리기
+  // ======================================
+
   else if (activeTool === "draw") {
     remember();
 
@@ -527,12 +692,14 @@ canvas.addEventListener("pointerdown", event => {
     render();
   }
 
+  // ======================================
   // 스티커 도구
-  else if (activeTool === "sticker") {
+  // ======================================
 
+  else if (activeTool === "sticker") {
     const sticker = pickSticker(point.x, point.y);
 
-    // 기존 스티커를 클릭한 경우
+    // 기존 스티커 선택
     if (sticker) {
       remember();
 
@@ -547,17 +714,22 @@ canvas.addEventListener("pointerdown", event => {
         offsetY: point.y - sticker.y
       };
 
-    canvas.setPointerCapture(event.pointerId);
+      canvas.setPointerCapture(event.pointerId);
 
-    setStatus("스티커를 선택했습니다. 드래그해 이동하세요.");
+      setStatus(
+        "스티커를 선택했습니다. 드래그해 이동하세요."
+      );
 
     } else {
-      // 빈 곳을 클릭하면 새 스티커 추가
+      // 빈 공간 클릭 시 새 스티커 추가
       addSticker(point.x, point.y);
     }
   }
 
+  // ======================================
   // 이미지 이동
+  // ======================================
+
   else if (activeTool === "image" && state.image) {
     remember();
 
@@ -572,7 +744,7 @@ canvas.addEventListener("pointerdown", event => {
 });
 
 // ======================================
-// 19. 드래그 이동
+// 25. 드래그 이동
 // ======================================
 
 canvas.addEventListener("pointermove", event => {
@@ -603,7 +775,7 @@ canvas.addEventListener("pointermove", event => {
 });
 
 // ======================================
-// 20. 드래그 종료
+// 26. 드래그 종료
 // ======================================
 
 function stopDrag() {
@@ -614,7 +786,7 @@ canvas.addEventListener("pointerup", stopDrag);
 canvas.addEventListener("pointercancel", stopDrag);
 
 // ======================================
-// 21. SAVE - 템플릿 관리
+// 27. SAVE - 템플릿 관리
 // ======================================
 
 // SAVE 버튼은 관리 창을 엽니다.
@@ -639,7 +811,7 @@ $("templateModal").addEventListener("click", event => {
   }
 });
 
-// ESC 키
+// ESC 키로 닫기
 document.addEventListener("keydown", event => {
   if (event.key === "Escape") {
     closeTemplateModal();
@@ -647,7 +819,7 @@ document.addEventListener("keydown", event => {
 });
 
 // ======================================
-// 22. OUTPUT - PNG 다운로드
+// 28. OUTPUT - PNG 다운로드
 // ======================================
 
 $("btnOutput").addEventListener("click", () => {
@@ -688,8 +860,11 @@ $("btnOutput").addEventListener("click", () => {
 });
 
 // ======================================
-// 23. 초기 실행
+// 29. 초기 실행
 // ======================================
+
+// HTML 선택창을 현재 상태와 동기화
+$("frameType").value = state.frameType || "none";
 
 window.addEventListener("resize", updateCanvasSize);
 
