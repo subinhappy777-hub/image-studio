@@ -1,162 +1,536 @@
-import { state, render, updateCanvasSize, canvas } from "./state.js";
-import { handleFile } from "./file-validation.js";
+import {
+  state,
+  canvas,
+  render,
+  updateCanvasSize,
+  setStatus
+} from "./state.js";
 
-const STORAGE_KEY = "zzal_card_templates";
-const inlineInput = document.getElementById("inlineTextInput");
+import {
+  handleFile
+} from "./file-validation.js";
 
-// 1. 툴바 아이콘 클릭 이벤트
-document.querySelectorAll(".tool-btn").forEach(btn => {
-  btn.addEventListener("click", () => {
-    const tool = btn.dataset.tool;
-    if (tool === "undo") {
-      if (state.drawings.length) state.drawings.pop();
-      else if (state.texts.length) state.texts.pop();
-      else if (state.stickers.length) state.stickers.pop();
-      render(); return;
-    }
-    document.querySelectorAll(".tool-btn").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-    document.querySelectorAll(".opt-content").forEach(c => c.classList.remove("active"));
-    const panel = document.getElementById(`opt-${tool}`);
-    if (panel) panel.classList.add("active");
-  });
-});
+import {
+  createTemplate,
+  openTemplateModal,
+  closeTemplateModal
+} from "./template.js";
 
-// 2. 하단 버튼 액션 (INPUT, SAVE, OUTPUT)
-document.getElementById("btnInput").addEventListener("click", () => document.getElementById("fileInput").click());
-document.getElementById("fileInput").addEventListener("change", (e) => { handleFile(e.target.files[0]); e.target.value = ""; });
-document.getElementById("uploadPlaceholder").addEventListener("click", () => document.getElementById("fileInput").click());
+// ======================================
+// 1. 기본 설정
+// ======================================
 
-document.getElementById("btnSave").addEventListener("click", () => {
-  const templates = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-  templates.push({
-    id: Date.now().toString(), name: `템플릿 ${templates.length + 1}`,
-    aspectRatio: state.aspectRatio, texts: state.texts, drawings: state.drawings, stickers: state.stickers,
-    imageSrc: state.image ? state.image.src : null
-  });
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(templates));
-  renderTemplateList();
-  document.getElementById("templateModal").classList.add("open");
-});
+const $ = id => document.getElementById(id);
 
-document.getElementById("closeModalBtn").addEventListener("click", () => document.getElementById("templateModal").classList.remove("open"));
+let activeTool = "text";
+let drag = null;
 
-document.getElementById("btnOutput").addEventListener("click", () => {
-  render();
-  const link = document.createElement("a");
-  link.download = `card-studio_${Date.now()}.png`;
-  link.href = canvas.toDataURL("image/png");
-  document.body.appendChild(link); link.click(); document.body.removeChild(link);
-});
+const history = [];
+const HISTORY_LIMIT = 30;
 
-// 3. 줌 및 화면비
-document.getElementById("zoomInBtn").addEventListener("click", () => { state.zoomLevel = Math.min(2.0, state.zoomLevel + 0.1); updateCanvasSize(); });
-document.getElementById("zoomOutBtn").addEventListener("click", () => { state.zoomLevel = Math.max(0.5, state.zoomLevel - 0.1); updateCanvasSize(); });
-document.getElementById("aspectRatio").addEventListener("change", (e) => { state.aspectRatio = e.target.value; updateCanvasSize(); });
-document.getElementById("bgColor").addEventListener("input", render);
+// ======================================
+// 2. 편집 기록 저장
+// ======================================
 
-// 4. 템플릿 리스트 렌더링
-function renderTemplateList() {
-  const listEl = document.getElementById("templateList");
-  const templates = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-  listEl.innerHTML = templates.length === 0 ? '<li style="justify-content:center;">저장된 템플릿이 없습니다.</li>' : "";
-  
-  templates.forEach(t => {
-    const li = document.createElement("li");
-    li.innerHTML = `<span>${t.name}</span><button class="load-btn" data-id="${t.id}">불러오기</button>`;
-    listEl.appendChild(li);
-  });
-
-  listEl.querySelectorAll(".load-btn").forEach(btn => btn.addEventListener("click", (e) => {
-    const templates = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-    const t = templates.find(x => x.id === e.target.dataset.id);
-    if (t) {
-      state.aspectRatio = t.aspectRatio; state.texts = t.texts || [];
-      state.drawings = t.drawings || []; state.stickers = t.stickers || [];
-      document.getElementById("aspectRatio").value = state.aspectRatio;
-      if (t.imageSrc) {
-        const img = new Image(); img.onload = () => { state.image = img; document.getElementById("uploadPlaceholder").style.display = "none"; updateCanvasSize(); }; img.src = t.imageSrc;
-      } else {
-        state.image = null; document.getElementById("uploadPlaceholder").style.display = "flex"; updateCanvasSize();
-      }
-      document.getElementById("templateModal").classList.remove("open");
-    }
-  }));
-}
-
-// 5. 캔버스 이벤트 (텍스트 직접 입력 & 그림)
-let isDrawing = false, currentStroke = null;
-
-function getCoords(e) {
-  const rect = canvas.getBoundingClientRect();
-  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+function snapshot() {
   return {
-    x: ((clientX - rect.left) / rect.width) * 100,
-    y: ((clientY - rect.top) / rect.height) * 100
+    texts: structuredClone(state.texts),
+    drawings: structuredClone(state.drawings),
+    imageX: state.imageX,
+    imageY: state.imageY,
+    imageScale: state.imageScale,
+    background: state.background
   };
 }
 
-function showInlineInput(x, y) {
-  inlineInput.value = "";
-  inlineInput.style.left = `${x}%`;
-  inlineInput.style.top = `${y}%`;
-  inlineInput.style.display = "block";
-  inlineInput.focus();
+function remember() {
+  history.push(snapshot());
+
+  if (history.length > HISTORY_LIMIT) {
+    history.shift();
+  }
 }
 
-inlineInput.addEventListener("blur", () => {
-  inlineInput.style.display = "none";
-  const val = inlineInput.value.trim();
-  if (val) {
-    state.texts.push({
-      id: Date.now().toString(), text: val,
-      x: parseFloat(inlineInput.style.left), y: parseFloat(inlineInput.style.top),
-      fontSize: Number(document.getElementById("fontSize").value),
-      fontFamily: document.getElementById("fontFamily").value,
-      color: document.getElementById("colorInput").value
+// ======================================
+// 3. 실행 취소
+// ======================================
+
+function undo() {
+  const previous = history.pop();
+
+  if (!previous) {
+    setStatus("되돌릴 작업이 없습니다.");
+    return;
+  }
+
+  Object.assign(state, previous);
+
+  state.selectedTextId = null;
+
+  $("imageScale").value = String(
+    Math.round(state.imageScale * 100)
+  );
+
+  $("bgColor").value = state.background;
+
+  render();
+
+  setStatus("이전 편집 상태로 되돌렸습니다.");
+}
+
+// ======================================
+// 4. 캔버스 좌표 계산
+// ======================================
+
+function getCoords(event) {
+  const rect = canvas.getBoundingClientRect();
+
+  return {
+    x: (event.clientX - rect.left) / rect.width * 100,
+    y: (event.clientY - rect.top) / rect.height * 100
+  };
+}
+
+// ======================================
+// 5. 문구 추가
+// ======================================
+
+function addText(value, x = 50, y = 50) {
+  const text = String(value).trim();
+
+  if (!text) {
+    setStatus("문구를 입력해 주세요.", true);
+    return;
+  }
+
+  remember();
+
+  const item = {
+    id: crypto.randomUUID(),
+    text: text.slice(0, 300),
+    x,
+    y,
+    fontSize: Number($("fontSize").value),
+    fontFamily: $("fontFamily").value,
+    color: $("colorInput").value
+  };
+
+  state.texts.push(item);
+
+  state.selectedTextId = item.id;
+
+  render();
+
+  setStatus("문구를 추가했습니다.");
+}
+
+// ======================================
+// 6. 선택된 문구 찾기
+// ======================================
+
+function selectedText() {
+  return state.texts.find(
+    text => text.id === state.selectedTextId
+  ) || null;
+}
+
+function pickText(x, y) {
+  return [...state.texts].reverse().find(text => {
+    const width = Math.min(
+      48,
+      Math.max(
+        7,
+        String(text.text).length *
+        text.fontSize / canvas.width * 45
+      )
+    );
+
+    const height = Math.max(
+      4,
+      text.fontSize / canvas.height * 70
+    );
+
+    return (
+      Math.abs(text.x - x) <= width &&
+      Math.abs(text.y - y) <= height
+    );
+  });
+}
+
+// ======================================
+// 7. 문구 설정 동기화
+// ======================================
+
+function syncTextControls(text) {
+  $("textInput").value = text.text;
+
+  $("fontSize").value = String(text.fontSize);
+
+  $("fontSizeValue").textContent =
+    String(text.fontSize);
+
+  $("colorInput").value = text.color;
+
+  $("fontFamily").value = text.fontFamily;
+}
+
+// ======================================
+// 8. 도구 선택
+// ======================================
+
+document.querySelectorAll(".tool-btn").forEach(button => {
+  button.addEventListener("click", () => {
+    const tool = button.dataset.tool;
+
+    if (tool === "undo") {
+      undo();
+      return;
+    }
+
+    activeTool = tool;
+
+    document.querySelectorAll(".tool-btn").forEach(btn => {
+      const selected = btn === button;
+
+      btn.classList.toggle("active", selected);
+
+      if (btn.dataset.tool !== "undo") {
+        btn.setAttribute(
+          "aria-pressed",
+          String(selected)
+        );
+      }
     });
+
+    document.querySelectorAll(".opt-content").forEach(panel => {
+      panel.classList.toggle(
+        "active",
+        panel.id === `opt-${tool}`
+      );
+    });
+  });
+});
+
+// ======================================
+// 9. 문구 추가 버튼
+// ======================================
+
+$("addTextBtn").addEventListener("click", () => {
+  addText($("textInput").value);
+});
+
+// ======================================
+// 10. 문구 내용 수정
+// ======================================
+
+$("textInput").addEventListener("input", event => {
+  const text = selectedText();
+
+  if (!text) return;
+
+  text.text = event.target.value.slice(0, 300);
+
+  render();
+});
+
+// ======================================
+// 11. 글자 크기
+// ======================================
+
+$("fontSize").addEventListener("input", event => {
+  $("fontSizeValue").textContent = event.target.value;
+
+  const text = selectedText();
+
+  if (text) {
+    text.fontSize = Number(event.target.value);
     render();
   }
 });
 
-function startAction(e) {
-  e.preventDefault();
-  const activeTool = document.querySelector(".tool-btn.active").dataset.tool;
-  const { x, y } = getCoords(e);
+// ======================================
+// 12. 글자 색상
+// ======================================
 
-  if (activeTool === "text") {
-    showInlineInput(x, y);
-  } else if (activeTool === "draw") {
-    isDrawing = true;
-    currentStroke = {
-      points: [{ x, y }], color: document.getElementById("brushColor").value,
-      size: Number(document.getElementById("brushSize").value), type: document.getElementById("brushType").value
-    };
-    state.drawings.push(currentStroke);
+$("colorInput").addEventListener("input", event => {
+  const text = selectedText();
+
+  if (text) {
+    text.color = event.target.value;
+    render();
   }
-}
+});
 
-function moveAction(e) {
-  if (!isDrawing || !currentStroke) return;
-  e.preventDefault();
-  const { x, y } = getCoords(e);
-  currentStroke.points.push({ x, y });
+// ======================================
+// 13. 글꼴 변경
+// ======================================
+
+$("fontFamily").addEventListener("change", event => {
+  const text = selectedText();
+
+  if (text) {
+    text.fontFamily = event.target.value;
+    render();
+  }
+});
+
+// ======================================
+// 14. 이미지 설정
+// ======================================
+
+$("bgColor").addEventListener("input", event => {
+  state.background = event.target.value;
   render();
+});
+
+$("imageScale").addEventListener("input", event => {
+  state.imageScale = Number(event.target.value) / 100;
+  render();
+});
+
+// ======================================
+// 15. 이미지 업로드
+// ======================================
+
+$("btnInput").addEventListener("click", () => {
+  $("fileInput").click();
+});
+
+$("uploadPlaceholder").addEventListener("click", () => {
+  $("fileInput").click();
+});
+
+$("fileInput").addEventListener("change", async event => {
+  const file = event.target.files?.[0];
+
+  if (file) {
+    await handleFile(file);
+  }
+
+  event.target.value = "";
+});
+
+// ======================================
+// 16. 화면비 변경
+// ======================================
+
+$("aspectRatio").addEventListener("change", event => {
+  state.aspectRatio = event.target.value;
+  updateCanvasSize();
+});
+
+// ======================================
+// 17. 확대·축소
+// ======================================
+
+$("zoomInBtn").addEventListener("click", () => {
+  state.zoomLevel = Math.min(
+    2,
+    state.zoomLevel + 0.1
+  );
+
+  updateCanvasSize();
+});
+
+$("zoomOutBtn").addEventListener("click", () => {
+  state.zoomLevel = Math.max(
+    0.5,
+    state.zoomLevel - 0.1
+  );
+
+  updateCanvasSize();
+});
+
+// ======================================
+// 18. 캔버스 편집 시작
+// ======================================
+
+canvas.addEventListener("pointerdown", event => {
+  if (event.button !== 0) return;
+
+  const point = getCoords(event);
+
+  // 문구 이동 및 선택
+  if (activeTool === "text") {
+    const text = pickText(point.x, point.y);
+
+    if (text) {
+      remember();
+
+      state.selectedTextId = text.id;
+
+      syncTextControls(text);
+
+      drag = {
+        type: "text",
+        target: text,
+        offsetX: point.x - text.x,
+        offsetY: point.y - text.y
+      };
+
+      canvas.setPointerCapture(event.pointerId);
+
+    } else {
+      addText(
+        $("textInput").value,
+        point.x,
+        point.y
+      );
+    }
+  }
+
+  // 그림 그리기
+  else if (activeTool === "draw") {
+    remember();
+
+    const stroke = {
+      points: [point],
+      color: $("brushColor").value,
+      size: Number($("brushSize").value),
+      type: $("brushType").value
+    };
+
+    state.drawings.push(stroke);
+
+    drag = {
+      type: "draw",
+      target: stroke
+    };
+
+    canvas.setPointerCapture(event.pointerId);
+
+    render();
+  }
+
+  // 이미지 이동
+  else if (activeTool === "image" && state.image) {
+    remember();
+
+    drag = {
+      type: "image",
+      offsetX: point.x - state.imageX,
+      offsetY: point.y - state.imageY
+    };
+
+    canvas.setPointerCapture(event.pointerId);
+  }
+});
+
+// ======================================
+// 19. 드래그 이동
+// ======================================
+
+canvas.addEventListener("pointermove", event => {
+  if (!drag) return;
+
+  const point = getCoords(event);
+
+  if (drag.type === "text") {
+    drag.target.x = point.x - drag.offsetX;
+    drag.target.y = point.y - drag.offsetY;
+  }
+
+  else if (drag.type === "draw") {
+    drag.target.points.push(point);
+  }
+
+  else if (drag.type === "image") {
+    state.imageX = point.x - drag.offsetX;
+    state.imageY = point.y - drag.offsetY;
+  }
+
+  render();
+});
+
+// ======================================
+// 20. 드래그 종료
+// ======================================
+
+function stopDrag() {
+  drag = null;
 }
 
-function endAction() { isDrawing = false; currentStroke = null; }
+canvas.addEventListener("pointerup", stopDrag);
+canvas.addEventListener("pointercancel", stopDrag);
 
-canvas.addEventListener("mousedown", startAction);
-canvas.addEventListener("mousemove", moveAction);
-canvas.addEventListener("mouseup", endAction);
-canvas.addEventListener("mouseleave", endAction);
-canvas.addEventListener("touchstart", startAction, { passive: false });
-canvas.addEventListener("touchmove", moveAction, { passive: false });
-canvas.addEventListener("touchend", endAction);
-canvas.addEventListener("touchcancel", endAction);
+// ======================================
+// 21. SAVE - 템플릿 관리
+// ======================================
 
-// 6. 초기화
+// SAVE 버튼은 관리 창을 엽니다.
+$("btnSave").addEventListener("click", () => {
+  openTemplateModal();
+});
+
+// 새 템플릿 생성
+$("createTemplateBtn").addEventListener("click", () => {
+  createTemplate();
+});
+
+// 템플릿 창 닫기
+$("closeModalBtn").addEventListener("click", () => {
+  closeTemplateModal();
+});
+
+// 바깥 영역 클릭 시 닫기
+$("templateModal").addEventListener("click", event => {
+  if (event.target === $("templateModal")) {
+    closeTemplateModal();
+  }
+});
+
+// ESC 키
+document.addEventListener("keydown", event => {
+  if (event.key === "Escape") {
+    closeTemplateModal();
+  }
+});
+
+// ======================================
+// 22. OUTPUT - PNG 다운로드
+// ======================================
+
+$("btnOutput").addEventListener("click", () => {
+  render();
+
+  canvas.toBlob(blob => {
+    if (!blob) {
+      setStatus(
+        "PNG 파일을 생성하지 못했습니다.",
+        true
+      );
+      return;
+    }
+
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+
+    link.href = url;
+
+    link.download = `card-studio-${Date.now()}.png`;
+
+    document.body.appendChild(link);
+
+    link.click();
+
+    link.remove();
+
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+    }, 1000);
+
+    setStatus(
+      "PNG 파일 다운로드가 시작되었습니다."
+    );
+
+  }, "image/png");
+});
+
+// ======================================
+// 23. 초기 실행
+// ======================================
+
 window.addEventListener("resize", updateCanvasSize);
+
 updateCanvasSize();
-renderTemplateList();

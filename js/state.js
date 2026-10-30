@@ -1,107 +1,312 @@
+// ======================================
+// 1. 편집 상태
+// ======================================
+
 export const state = {
   image: null,
   aspectRatio: "1:1",
-  zoomLevel: 1.0,
-  texts: [], 
+  zoomLevel: 1,
+
+  texts: [],
+  drawings: [],
+  stickers: [],
+
   selectedTextId: null,
-  drawings: [], 
-  stickers: [] 
+  selectedStickerId: null,
+
+  imageScale: 1,
+  imageX: 50,
+  imageY: 50,
+
+  background: "#222b42"
 };
 
-export const LIMITS = { MAX_BYTES: 10 * 1024 * 1024, MAX_SIDE: 8000 };
+// ======================================
+// 2. 이미지 제한
+// ======================================
+
+export const LIMITS = {
+  MAX_BYTES: 10 * 1024 * 1024,
+  MAX_SIDE: 8000,
+  MAX_PIXELS: 32000000
+};
+
+// ======================================
+// 3. 캔버스
+// ======================================
+
 export const canvas = document.getElementById("canvas");
+
 export const ctx = canvas.getContext("2d");
 
+// ======================================
+// 4. 상태 메시지
+// ======================================
+
+export function setStatus(message, error = false) {
+  const element = document.getElementById("status");
+
+  element.textContent = message;
+  element.classList.toggle("error", error);
+}
+
+// ======================================
+// 5. 화면비에 따른 크기
+// ======================================
+
+export const CANVAS_SIZES = {
+  "1:1": [1080, 1080],
+  "4:5": [1080, 1350],
+  "16:9": [1920, 1080]
+};
+
+// ======================================
+// 6. 캔버스 크기 변경
+// ======================================
+
 export function updateCanvasSize() {
-  let w = 720, h = 720;
-  if (state.aspectRatio === "4:5") { w = 720; h = 900; }
-  if (state.aspectRatio === "9:16") { w = 720; h = 1280; }
-  
+  const [width, height] =
+    CANVAS_SIZES[state.aspectRatio] || CANVAS_SIZES["1:1"];
+
+  if (canvas.width !== width) {
+    canvas.width = width;
+  }
+
+  if (canvas.height !== height) {
+    canvas.height = height;
+  }
+
+  const stage = document.querySelector(".canvas-stage");
+
+  const availableWidth = Math.max(
+    120,
+    stage.clientWidth - 32
+  );
+
+  const availableHeight = Math.max(
+    160,
+    Math.min(510, window.innerHeight * 0.58)
+  );
+
+  const scale = Math.min(
+    availableWidth / width,
+    availableHeight / height
+  ) * state.zoomLevel;
+
+  const displayWidth = Math.max(1, Math.round(width * scale));
+  const displayHeight = Math.max(1, Math.round(height * scale));
+
+  canvas.style.width = `${displayWidth}px`;
+  canvas.style.height = `${displayHeight}px`;
+
   const container = document.getElementById("canvasContainer");
-  const maxW = container.parentElement.clientWidth - 40;
-  const maxH = container.parentElement.clientHeight - 40;
-  
-  canvas.width = w;
-  canvas.height = h;
-  
-  const scale = Math.min(maxW / w, maxH / h) * state.zoomLevel;
-  canvas.style.width = `${w * scale}px`;
-  canvas.style.height = `${h * scale}px`;
-  container.style.width = canvas.style.width;
-  container.style.height = canvas.style.height;
+
+  container.style.width = `${displayWidth}px`;
+  container.style.height = `${displayHeight}px`;
+
+  document.getElementById("zoomLabel").textContent =
+    `${Math.round(state.zoomLevel * 100)}%`;
 
   render();
 }
 
-function getLines(text, maxWidth, fontSize) {
-  if (!text) return [];
+// ======================================
+// 7. 문구 줄바꿈
+// ======================================
+
+function wrapText(text, maxWidth) {
   const lines = [];
-  ctx.font = `700 ${fontSize}px system-ui, sans-serif`;
-  text.split('\n').forEach(p => {
-    let currentLine = '';
-    Array.from(p).forEach(char => {
-      const testLine = currentLine + char;
-      if (ctx.measureText(testLine).width > maxWidth && currentLine) {
-        lines.push(currentLine);
-        currentLine = char;
+
+  String(text).split("\n").forEach(part => {
+    let line = "";
+
+    for (const char of Array.from(part)) {
+      if (
+        line &&
+        ctx.measureText(line + char).width > maxWidth
+      ) {
+        lines.push(line);
+        line = char;
       } else {
-        currentLine = testLine;
+        line += char;
       }
-    });
-    if (currentLine) lines.push(currentLine);
+    }
+
+    lines.push(line);
   });
-  return lines;
+
+  return lines.slice(0, 80);
 }
 
-function drawStroke(stroke) {
-  if (stroke.points.length < 2) return;
-  const { points, color, size, type } = stroke;
-  ctx.beginPath();
-  ctx.moveTo((points[0].x / 100) * canvas.width, (points[0].y / 100) * canvas.height);
-  for (let i = 1; i < points.length; i++) {
-    ctx.lineTo((points[i].x / 100) * canvas.width, (points[i].y / 100) * canvas.height);
-  }
-  ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.strokeStyle = color;
+// ======================================
+// 8. 이미지 렌더링
+// ======================================
 
-  if (type === "neon") {
-    ctx.save(); ctx.shadowBlur = size * 2; ctx.shadowColor = color; ctx.lineWidth = size; ctx.stroke();
-    ctx.shadowBlur = size * 4; ctx.lineWidth = size * 0.6; ctx.stroke(); ctx.restore();
-  } else if (type === "highlighter") {
-    ctx.save(); ctx.globalAlpha = 0.4; ctx.lineWidth = size * 1.5; ctx.stroke(); ctx.restore();
-  } else if (type === "glitter") {
-    ctx.lineWidth = size; ctx.stroke(); ctx.fillStyle = color;
-    points.forEach(pt => {
-      if (Math.random() > 0.7) {
-        const px = (pt.x / 100) * canvas.width + (Math.random() - 0.5) * size * 3;
-        const py = (pt.y / 100) * canvas.height + (Math.random() - 0.5) * size * 3;
-        ctx.beginPath(); ctx.arc(px, py, Math.random() * 1.5 + 0.5, 0, Math.PI * 2); ctx.fill();
+function drawBackground() {
+  ctx.fillStyle = state.background;
+
+  ctx.fillRect(
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
+}
+
+function drawImage() {
+  if (!state.image) return;
+
+  const img = state.image;
+
+  const width = canvas.width;
+  const height = canvas.height;
+
+  const fit = Math.min(
+    width / img.naturalWidth,
+    height / img.naturalHeight
+  ) * state.imageScale;
+
+  const imageWidth = img.naturalWidth * fit;
+  const imageHeight = img.naturalHeight * fit;
+
+  const x =
+    width * state.imageX / 100 - imageWidth / 2;
+
+  const y =
+    height * state.imageY / 100 - imageHeight / 2;
+
+  ctx.drawImage(
+    img,
+    x,
+    y,
+    imageWidth,
+    imageHeight
+  );
+}
+
+// ======================================
+// 9. 그리기 렌더링
+// ======================================
+
+function drawStrokes() {
+  for (const stroke of state.drawings) {
+    if (!stroke.points || !stroke.points.length) {
+      continue;
+    }
+
+    ctx.save();
+    ctx.beginPath();
+
+    stroke.points.forEach((point, index) => {
+      const x = point.x * canvas.width / 100;
+      const y = point.y * canvas.height / 100;
+
+      if (index === 0) {
+        ctx.moveTo(x, y);
+      } else {
+        ctx.lineTo(x, y);
       }
     });
-  } else {
-    ctx.lineWidth = size; ctx.stroke();
+
+    if (stroke.points.length === 1) {
+      const point = stroke.points[0];
+
+      ctx.lineTo(
+        point.x * canvas.width / 100 + 0.01,
+        point.y * canvas.height / 100 + 0.01
+      );
+    }
+
+    ctx.lineWidth = stroke.size;
+    ctx.strokeStyle = stroke.color;
+
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+
+    if (stroke.type === "highlighter") {
+      ctx.globalAlpha = 0.4;
+    }
+
+    if (stroke.type === "neon") {
+      ctx.shadowColor = stroke.color;
+      ctx.shadowBlur = stroke.size * 2;
+    }
+
+    ctx.stroke();
+    ctx.restore();
   }
 }
+
+// ======================================
+// 10. 문구 렌더링
+// ======================================
+
+function drawTexts() {
+  for (const text of state.texts) {
+    ctx.save();
+
+    const size = Math.max(
+      12,
+      Math.min(120, Number(text.fontSize) || 44)
+    );
+
+    const allowedFonts = [
+      "sans-serif",
+      "serif",
+      "monospace"
+    ];
+
+    const font = allowedFonts.includes(text.fontFamily)
+      ? text.fontFamily
+      : "sans-serif";
+
+    ctx.font = `bold ${size}px ${font}`;
+
+    ctx.fillStyle = text.color || "#ffffff";
+
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    ctx.strokeStyle = "#0008";
+    ctx.lineWidth = 3;
+
+    const lines = wrapText(
+      text.text,
+      Math.max(50, canvas.width - 32)
+    );
+
+    const lineHeight = size * 1.25;
+
+    const startY =
+      text.y * canvas.height / 100 -
+      (lines.length - 1) * lineHeight / 2;
+
+    lines.forEach((line, index) => {
+      const x = text.x * canvas.width / 100;
+      const y = startY + index * lineHeight;
+
+      ctx.strokeText(line, x, y);
+      ctx.fillText(line, x, y);
+    });
+
+    ctx.restore();
+  }
+}
+
+// ======================================
+// 11. 전체 렌더링
+// ======================================
 
 export function render() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = document.getElementById("bgColor")?.value || "#1e1e24";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.clearRect(
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
 
-  if (state.image) {
-    const iw = state.image.naturalWidth, ih = state.image.naturalHeight;
-    const scale = Math.min(canvas.width / iw, canvas.height / ih);
-    ctx.drawImage(state.image, (canvas.width - iw*scale)/2, (canvas.height - ih*scale)/2, iw*scale, ih*scale);
-  }
-
-  state.drawings.forEach(drawStroke);
-
-  state.texts.forEach(t => {
-    ctx.font = `700 ${t.fontSize}px ${t.fontFamily}`;
-    ctx.fillStyle = t.color; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    const lines = getLines(t.text, canvas.width - 40, t.fontSize);
-    const lineHeight = t.fontSize * 1.2;
-    const startY = ((t.y / 100) * canvas.height) - ((lines.length - 1) * lineHeight / 2);
-    const x = (t.x / 100) * canvas.width;
-    lines.forEach((line, i) => ctx.fillText(line, x, startY + (i * lineHeight)));
-  });
+  drawBackground();
+  drawImage();
+  drawStrokes();
+  drawTexts();
 }
