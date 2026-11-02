@@ -346,31 +346,79 @@ $("frameType").addEventListener("change", e => { state.frameType = e.target.valu
 // ======================================
 // 13. 이미지 업로드 및 분할
 // ======================================
-$("btnInput").addEventListener("click", () => $("fileInput").click());
-$("uploadPlaceholder").addEventListener("click", () => $("fileInput").click());
-$("fileInput").addEventListener("change", async e => {
-  const file = e.target.files?.[0];
-  if (file) await handleFile(file);
-  e.target.value = "";
+// 이미지 업로드 요소
+const fileInput = $("fileInput");
+const uploadPlaceholder = $("uploadPlaceholder");
+const btnInput = $("btnInput");
+
+// 이미지 불러오기 버튼
+btnInput?.addEventListener("click", () => {
+  fileInput?.click();
 });
 
-// 🟢 사진 분할 업로드 (2등분 / 4등분)
-$("split2Btn")?.addEventListener("click", () => {
-  $("splitFileInput").onchange = async e => {
-    const file = e.target.files?.[0];
-    if (file) await handleFile(file, "2");
+uploadPlaceholder?.addEventListener("click", () => {
+  fileInput?.click();
+});
+
+// 이미지 선택 및 불러오기
+fileInput?.addEventListener("change", async (e) => {
+  const file = e.target.files?.[0];
+
+  if (!file) return;
+
+  try {
+    await handleFile(file);
+  } catch (error) {
+    console.error("이미지 불러오기 실패:", error);
+    alert("이미지를 불러오지 못했습니다.");
+  } finally {
     e.target.value = "";
+  }
+});
+
+// 사진 분할 업로드 (2등분 / 4등분)
+const splitFileInput = $("splitFileInput");
+
+$("split2Btn")?.addEventListener("click", () => {
+  if (!splitFileInput) return;
+
+  splitFileInput.onchange = async (e) => {
+    const file = e.target.files?.[0];
+
+    if (!file) return;
+
+    try {
+      await handleFile(file, "2");
+    } catch (error) {
+      console.error("2분할 이미지 업로드 실패:", error);
+      alert("이미지 분할에 실패했습니다.");
+    } finally {
+      e.target.value = "";
+    }
   };
-  $("splitFileInput").click();
+
+  splitFileInput.click();
 });
 
 $("split4Btn")?.addEventListener("click", () => {
-  $("splitFileInput").onchange = async e => {
+  if (!splitFileInput) return;
+
+  splitFileInput.onchange = async (e) => {
     const file = e.target.files?.[0];
-    if (file) await handleFile(file, "4");
-    e.target.value = "";
+
+    if (!file) return;
+
+    try {
+      await handleFile(file, "4");
+    } catch (error) {
+      console.error("4분할 이미지 업로드 실패:", error);
+      alert("이미지 분할에 실패했습니다.");
+    } finally {
+      e.target.value = "";
+    }
   };
-  $("splitFileInput").click();
+
+  splitFileInput.click();
 });
 
 // ======================================
