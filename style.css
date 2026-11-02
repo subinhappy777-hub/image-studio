@@ -1,7 +1,6 @@
 /* ======================================
-   1. 기본 설정
-====================================== */
-
+   1. 기본 설정 (Reset & Theme)
+   ====================================== */
 :root {
   font-family: "Malgun Gothic", system-ui, sans-serif;
   color: #1b2740;
@@ -33,11 +32,9 @@ button {
   padding: 0 20px;
 }
 
-
 /* ======================================
-   2. 제목
-====================================== */
-
+   2. 상단 헤더
+   ====================================== */
 .page-head {
   display: flex;
   justify-content: space-between;
@@ -68,14 +65,12 @@ button {
   font-size: 12px;
 }
 
-
 /* ======================================
-   3. 전체 편집 영역
-====================================== */
-
+   3. 워크스페이스 (3단 레이아웃)
+   ====================================== */
 .workspace {
   display: grid;
-  grid-template-columns: 78px minmax(0, 1fr) 270px;
+  grid-template-columns: 78px minmax(0, 1fr) 300px; /* 우측 패널 살짝 넓힘 */
   min-height: 580px;
   background: white;
   border: 1px solid #dde4f1;
@@ -84,11 +79,9 @@ button {
   box-shadow: 0 12px 35px #20365b15;
 }
 
-
 /* ======================================
    4. 왼쪽 도구 모음
-====================================== */
-
+   ====================================== */
 .toolbar {
   display: flex;
   flex-direction: column;
@@ -122,11 +115,9 @@ button {
   color: #2055c9;
 }
 
-
 /* ======================================
-   5. 중앙 편집기
-====================================== */
-
+   5. 중앙 캔버스 영역
+   ====================================== */
 .canvas-zone {
   min-width: 0;
   display: flex;
@@ -177,11 +168,6 @@ canvas {
   cursor: crosshair;
 }
 
-
-/* ======================================
-   6. 이미지 업로드 안내
-====================================== */
-
 #uploadPlaceholder {
   position: absolute;
   inset: 0;
@@ -196,6 +182,7 @@ canvas {
   background: #ffffff25;
   color: white;
   text-shadow: 0 2px 5px #0008;
+  cursor: pointer;
 }
 
 #uploadPlaceholder strong {
@@ -211,11 +198,25 @@ canvas {
   font-size: 12px;
 }
 
+/* 캔버스 위 인라인 텍스트 입력창 */
+.inline-text-input {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  padding: 6px 10px;
+  border: 2px solid #4f8cff;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #111;
+  font-weight: bold;
+  text-align: center;
+  outline: none;
+  display: none;
+  z-index: 10;
+}
 
 /* ======================================
-   7. 확대 및 축소
-====================================== */
-
+   6. 확대/축소
+   ====================================== */
 .zoom {
   display: flex;
   justify-content: center;
@@ -238,11 +239,9 @@ canvas {
   font-size: 13px;
 }
 
-
 /* ======================================
-   8. 오른쪽 편집 설정
-====================================== */
-
+   7. 오른쪽 설정 패널 (공통)
+   ====================================== */
 .options {
   padding: 22px;
   border-left: 1px solid #e6ebf4;
@@ -269,11 +268,23 @@ canvas {
 }
 
 .options textarea,
-.options select {
+.options select,
+.options input[type="file"] {
   width: 100%;
   padding: 9px;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
+  max-width: 100%;
+  font-size: 12px;
+}
+
+.options input[type="file"]::file-selector-button {
+  border: 0;
+  border-radius: 7px;
+  padding: 9px;
+  background: #e6efff;
+  color: #2454bd;
+  cursor: pointer;
 }
 
 input[type="range"] {
@@ -300,13 +311,12 @@ input[type="color"] {
   color: #718096;
   font-size: 12px;
   line-height: 1.7;
+  margin: 0;
 }
 
-
 /* ======================================
-   9. 하단 버튼
-====================================== */
-
+   8. 하단 버튼 영역
+   ====================================== */
 .actions {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -332,6 +342,11 @@ input[type="color"] {
   background: #159b88;
 }
 
+/* JSON 저장 버튼 (기존 INPUT 위치) */
+#btnSaveJson {
+  background: #6d28d9; /* 보라색 */
+}
+
 .actions small {
   display: block;
   margin-top: 5px;
@@ -339,11 +354,9 @@ input[type="color"] {
   font-weight: normal;
 }
 
-
 /* ======================================
-   10. 상태 메시지
-====================================== */
-
+   9. 상태 메시지
+   ====================================== */
 .status {
   padding: 12px 15px;
   margin-top: 15px;
@@ -358,11 +371,9 @@ input[type="color"] {
   color: #a32929;
 }
 
-
 /* ======================================
-   11. 템플릿 관리 창
-====================================== */
-
+   10. 템플릿 모달
+   ====================================== */
 .modal {
   display: none;
   position: fixed;
@@ -441,249 +452,169 @@ input[type="color"] {
   color: #a22;
 }
 
-
 /* ======================================
-   12. 스티커 선택 영역
-====================================== */
-
+   11. 스티커 패널 (카테고리/회전/커스텀)
+   ====================================== */
 .sticker-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  margin: 12px 0;
+  grid-template-columns: repeat(4, minmax(0, 1fr)); /* 4열로 배치 */
+  gap: 8px;
+  margin: 10px 0;
 }
 
-/* 개별 스티커 버튼 */
 .sticker-item {
   display: flex;
   align-items: center;
   justify-content: center;
-
-  min-height: 65px;
-
+  min-height: 52px;
   border: 2px solid #e2e8f0;
-  border-radius: 14px;
-
-  background: #ffffff;
-
-  font-size: 34px;
-
+  border-radius: 12px;
+  background: #fff;
+  font-size: 26px;
   cursor: pointer;
-
-  transition:
-    transform 0.2s,
-    background 0.2s,
-    border-color 0.2s;
+  transition: transform .15s, background .15s, border-color .15s;
+  padding: 4px;
 }
 
-/* 마우스를 올렸을 때 */
 .sticker-item:hover {
-  transform: scale(1.08);
+  transform: scale(1.06);
   background: #fff1f8;
   border-color: #f9a8d4;
 }
 
-/* 선택된 스티커 */
 .sticker-item.selected {
   background: #ffe4f1;
   border-color: #ec4899;
   box-shadow: 0 0 0 2px #fbcfe8;
 }
 
-/* 스티커 설정 제목 */
+/* 말풍선 스티커 전용 스타일 */
+.sticker-item.speech-bubble {
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.3;
+  text-align: center;
+  word-break: keep-all;
+  background: #fff4fa;
+  border-radius: 18px;
+  min-height: 60px;
+}
+
 #opt-sticker h3 {
-  margin: 0;
-  font-size: 15px;
+  margin: 12px 0 4px;
+  font-size: 14px;
   color: #334155;
 }
 
-/* 스티커 삭제 버튼 */
-#deleteStickerBtn {
-  margin-top: 10px;
-  background: #ffe4e6;
-  color: #be123c;
+hr.divider {
+  margin: 12px 0;
+  border: 0;
+  border-top: 1px solid #e2e8f0;
 }
 
-#deleteStickerBtn:hover {
-  background: #fecdd3;
-}
-
-
-/* ======================================
-   13. 사진 꾸미기 및 프레임 설정
-   ★ 새로 추가한 부분 ★
-====================================== */
-
-/* 사진 꾸미기 제목 */
-#opt-image h3 {
-  margin: 10px 0 0;
-  padding: 12px 14px;
-
-  font-size: 15px;
-  font-weight: 700;
-
-  color: #be185d;
-  background: linear-gradient(
-    135deg,
-    #fff0f6,
-    #fce7f3
-  );
-
-  border: 1px solid #fbcfe8;
-  border-radius: 12px;
-}
-
-/* 사진 프레임 선택창 */
-#frameType {
-  width: 100%;
-  padding: 12px 14px;
-
-  background: #fffafd;
-  color: #334155;
-
-  border: 2px solid #fbcfe8;
-  border-radius: 12px;
-
-  font-size: 13px;
-
-  cursor: pointer;
-
-  transition:
-    border-color 0.2s,
-    box-shadow 0.2s,
-    background 0.2s;
-}
-
-/* 마우스를 올렸을 때 */
-#frameType:hover {
-  border-color: #f9a8d4;
-  background: #fff1f8;
-}
-
-/* 선택창을 클릭했을 때 */
-#frameType:focus {
-  outline: none;
-  border-color: #ec4899;
-  box-shadow: 0 0 0 3px #fbcfe880;
-}
-
-/* 프레임 설명 문구 */
-#opt-image .hint {
-  padding: 10px 12px;
+/* 텍스트 굵게 체크박스 UI */
+.bold-check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
   background: #f8fafc;
-  border-radius: 9px;
+  border-radius: 8px;
+  cursor: pointer;
 }
 
-/* 사진 프레임 아래 설명 */
-#frameType + .hint {
-  background: #fff1f8;
-  color: #9d4770;
-  border: 1px solid #fce7f3;
+.bold-check-row input {
+  width: 18px;
+  height: 18px;
 }
 
+.bold-check-row strong {
+  font-size: 15px;
+  color: #1e293b;
+}
 
 /* ======================================
-   14. 태블릿 화면
-====================================== */
+   12. 사진 분할 업로드 UI
+   ====================================== */
+.split-buttons {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
 
+.split-buttons button {
+  flex: 1;
+}
+
+/* ======================================
+   13. 반응형 (태블릿 & 모바일)
+   ====================================== */
 @media (max-width: 850px) {
-
   .workspace {
     grid-template-columns: 65px minmax(0, 1fr);
   }
-
   .options {
     grid-column: 1 / -1;
     border-left: none;
     border-top: 1px solid #e6ebf4;
   }
-
   .canvas-stage {
     min-height: 350px;
   }
-
 }
 
-
-/* ======================================
-   15. 스마트폰 화면
-====================================== */
-
 @media (max-width: 520px) {
-
   .app {
     padding: 0 10px;
     margin: 15px auto;
   }
-
   .page-head h1 {
     font-size: 22px;
   }
-
   .badge {
     display: none;
   }
-
   .workspace {
     grid-template-columns: 1fr;
   }
-
   .toolbar {
     flex-direction: row;
     justify-content: space-around;
     border-right: none;
     border-bottom: 1px solid #e6ebf4;
   }
-
   .tool-btn {
     font-size: 22px;
   }
-
   .canvas-stage {
     min-height: 300px;
     padding: 8px;
   }
-
   .options {
     grid-column: 1;
   }
-
   .actions {
     gap: 7px;
   }
-
   .actions button {
     padding: 13px 5px;
     font-size: 13px;
   }
-
   .actions small {
     font-size: 10px;
   }
-
   #templateList li {
     align-items: flex-start;
     flex-direction: column;
   }
-
-  /* 스티커 4열 배치 */
   .sticker-grid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
-
   .sticker-item {
-    min-height: 58px;
-    font-size: 29px;
+    min-height: 48px;
+    font-size: 22px;
   }
-
-  /* 모바일 프레임 설정 */
-  #opt-image h3 {
-    font-size: 14px;
+  .sticker-item.speech-bubble {
+    font-size: 10px;
   }
-
-  #frameType {
-    font-size: 13px;
-    padding: 11px;
-  }
-
 }
