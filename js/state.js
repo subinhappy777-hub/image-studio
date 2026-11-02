@@ -21,7 +21,11 @@ export const state = {
   imageX: 50,
   imageY: 50,
 
-  background: "#222b42"
+  background: "#222b42",
+
+  // 🟢 추가된 상태: 사진 분할 레이아웃 (1: 기본, 2: 2등분, 4: 4등분)
+  splitLayout: 1,
+  splitImages: [null, null, null, null]
 };
 
 // ======================================
@@ -62,7 +66,7 @@ export const CANVAS_SIZES = {
 };
 
 // ======================================
-// 6. 캔버스 크기 변경
+// 6. 캔버스 크기 변경 (줌 레벨 반영)
 // ======================================
 
 export function updateCanvasSize() {
@@ -77,6 +81,7 @@ export function updateCanvasSize() {
   const availableWidth = Math.max(120, stage.clientWidth - 32);
   const availableHeight = Math.max(160, Math.min(510, window.innerHeight * 0.58));
 
+  // 🟢 기본 크기 계산 후 state.zoomLevel을 곱하여 화면 크기 결정
   const scale = Math.min(availableWidth / width, availableHeight / height) * state.zoomLevel;
 
   const displayWidth = Math.max(1, Math.round(width * scale));
@@ -126,16 +131,55 @@ function drawBackground() {
 }
 
 // ======================================
-// 9. 이미지 그리기
+// 9. 이미지 그리기 (단일 & 2/4등분 콜라주 완벽 지원)
 // ======================================
 
 function drawImage() {
-  if (!state.image) return;
-
-  const img = state.image;
   const width = canvas.width;
   const height = canvas.height;
 
+  // 🟢 1. 2등분 / 4등분 콜라주 레이아웃 렌더링
+  if (state.splitLayout === 2 || state.splitLayout === 4) {
+    const cols = 2;
+    const rows = state.splitLayout === 2 ? 1 : 2;
+    const gap = 10;
+    const pieceW = (width - gap * (cols - 1)) / cols;
+    const pieceH = (height - gap * (rows - 1)) / rows;
+
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const index = r * cols + c;
+        const img = state.splitImages[index];
+        const dx = c * (pieceW + gap);
+        const dy = r * (pieceH + gap);
+
+        if (img) {
+          // 이미지 비율 유지하며 칸에 꽉 차게(Cover) 그림
+          const imgRatio = img.naturalWidth / img.naturalHeight;
+          const boxRatio = pieceW / pieceH;
+          let sx, sy, sw, sh;
+          if (imgRatio > boxRatio) {
+            sh = img.naturalHeight;
+            sw = sh * boxRatio;
+            sx = (img.naturalWidth - sw) / 2;
+            sy = 0;
+          } else {
+            sw = img.naturalWidth;
+            sh = sw / boxRatio;
+            sx = 0;
+            sy = (img.naturalHeight - sh) / 2;
+          }
+          ctx.drawImage(img, sx, sy, sw, sh, dx, dy, pieceW, pieceH);
+        }
+      }
+    }
+    return;
+  }
+
+  // 🟢 2. 기본 단일 이미지 렌더링 (기존 로직)
+  if (!state.image) return;
+
+  const img = state.image;
   const fit = Math.min(width / img.naturalWidth, height / img.naturalHeight) * state.imageScale;
   const imageWidth = img.naturalWidth * fit;
   const imageHeight = img.naturalHeight * fit;
@@ -540,7 +584,7 @@ export function render() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   drawBackground();
-  drawImage();
+  drawImage(); // 🟢 단일 및 분할 이미지 처리
   drawStrokes();
   drawStickers(); // 🟢 스티커 렌더링 (회전 등 적용됨)
   drawTexts();    // 🟢 텍스트 렌더링 (볼드 등 적용됨)

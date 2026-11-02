@@ -618,3 +618,56 @@ hr.divider {
     font-size: 10px;
   }
 }
+
+/* ======================================
+   14. 🟢 캔버스 4분할 오버레이 스타일 (신규 추가)
+   ====================================== */
+.split-overlay {
+  position: absolute;
+  inset: 0;
+  display: none; /* JS에서 2/4등분 시 grid로 변경 */
+  pointer-events: none; /* 기본적으로 클릭 통과 (버튼만 클릭되게) */
+}
+
+.split-zone-btn {
+  pointer-events: auto; /* 버튼은 클릭 가능 */
+  background: rgba(255, 255, 255, 0.4);
+  border: 2px dashed #94a3b8;
+  color: #475569;
+  font-size: 16px;
+  font-weight: bold;
+  border-radius: 8px;
+  margin: 5px; /* 간격 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.split-zone-btn:hover {
+  background: rgba(219, 234, 254, 0.8);
+  border-color: #3b82f6;
+  color: #1d4ed8;
+}
+
+/* 4등분 모드일 때 버튼을 2x2 그리드로 배치 */
+.split-overlay.mode-4 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+
+/* 2등분 모드일 때 버튼을 1x2 그리드로 배치 */
+.split-overlay.mode-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr;
+}
+
+/* 2등분 모드에서는 하단 두 버튼을 숨김 */
+.split-overlay.mode-2 .split-zone-btn[data-slot="2"],
+.split-overlay.mode-2 .split-zone-btn[data-slot="3"] {
+  display: none;
+}

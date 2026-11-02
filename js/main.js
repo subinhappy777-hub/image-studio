@@ -1,29 +1,7 @@
-import {
-  state,
-  canvas,
-  render,
-  updateCanvasSize,
-  setStatus
-} from "./state.js";
-
+import { state, canvas, render, updateCanvasSize, setStatus } from "./state.js";
 import { handleFile } from "./file-validation.js";
-
-import {
-  createTemplate,
-  openTemplateModal,
-  closeTemplateModal,
-  exportToJson,
-  importFromJson
-} from "./template.js";
-
-import {
-  getCustomStickers,
-  addCustomSticker,
-  addCustomFont,
-  restoreCustomFonts,
-  createSpeechBubbleSticker
-} from "./assets-library.js";
-
+import { createTemplate, openTemplateModal, closeTemplateModal, exportToJson, importFromJson } from "./template.js";
+import { getCustomStickers, addCustomSticker, addCustomFont, restoreCustomFonts } from "./assets-library.js";
 import { BUILTIN_STICKERS } from "./sticker-assets.js";
 
 // ======================================
@@ -33,7 +11,7 @@ const $ = id => document.getElementById(id);
 
 let activeTool = "text";
 let drag = null;
-let selectedStickerData = null; // 선택한 스티커 정보 (emoji, image, speech 등)
+let selectedStickerData = null;
 
 // 실행 취소 기록
 const history = [];
@@ -171,7 +149,6 @@ document.querySelectorAll(".tool-btn").forEach(button => {
 // ======================================
 // 8. 🟢 스티커 패널 동적 렌더링 (카테고리 분류)
 // ======================================
-
 function renderStickerPanel() {
   const grid = $("stickerGrid");
   if (!grid) return;
@@ -194,19 +171,15 @@ function renderStickerPanel() {
     container.className = "sticker-grid";
 
     let items = BUILTIN_STICKERS[cat.key] || [];
-
-    if (cat.key === "custom") {
-      items = getCustomStickers();
-    }
+    if (cat.key === "custom") items = getCustomStickers();
 
     items.forEach(item => {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "sticker-item";
 
-      if (item.kind === "emoji") {
-        btn.textContent = item.emoji;
-      } else if (item.kind === "speech") {
+      if (item.kind === "emoji") btn.textContent = item.emoji;
+      else if (item.kind === "speech") {
         btn.textContent = item.text;
         btn.classList.add("speech-bubble");
       } else if (item.kind === "image") {
@@ -223,7 +196,6 @@ function renderStickerPanel() {
         document.querySelectorAll(".tool-btn").forEach(toolBtn => {
           const selected = toolBtn.dataset.tool === "sticker";
           toolBtn.classList.toggle("active", selected);
-
           if (toolBtn.dataset.tool !== "undo") {
             toolBtn.setAttribute("aria-pressed", String(selected));
           }
@@ -235,68 +207,47 @@ function renderStickerPanel() {
 
         btn.classList.add("selected");
 
-        setStatus(
-          `"${item.name}" 스티커를 선택했습니다. 이미지를 클릭해 붙여보세요.`
-        );
+        setStatus(`"${item.name}" 스티커를 선택했습니다. 이미지를 클릭해 붙여보세요.`);
       });
 
       container.appendChild(btn);
     });
-
     grid.appendChild(container);
   });
 }
 
-
 // ======================================
 // 9. 스티커 추가
 // ======================================
-
 function addSticker(x, y) {
   if (!selectedStickerData) {
     setStatus("먼저 스티커 창에서 스티커를 선택해 주세요.", true);
     return;
   }
-
   remember();
 
   const sticker = {
     id: crypto.randomUUID(),
-    x,
-    y,
+    x, y,
     size: Number($("stickerSize")?.value) || 120,
     rotation: 0,
     kind: selectedStickerData.kind,
     name: selectedStickerData.name
   };
 
-  // 이모지 스티커
   if (selectedStickerData.kind === "emoji") {
     sticker.emoji = selectedStickerData.emoji;
-  }
-
-  // 말풍선 스티커
-  else if (selectedStickerData.kind === "speech") {
+  } else if (selectedStickerData.kind === "speech") {
     sticker.text = selectedStickerData.text;
-  }
-
-  // 이미지 스티커
-  else if (selectedStickerData.kind === "image") {
+  } else if (selectedStickerData.kind === "image") {
     sticker.src = selectedStickerData.src;
   }
 
   state.stickers.push(sticker);
   state.selectedStickerId = sticker.id;
-
-  console.log("선택된 스티커:", selectedStickerData);
-  console.log("캔버스에 추가된 스티커:", sticker);
-  console.log("전체 스티커 목록:", state.stickers);
-
   render();
-
   setStatus("스티커를 추가했습니다.");
 }
-
 
 // ======================================
 // 10. 스티커 선택 및 이동/회전
@@ -317,16 +268,15 @@ $("stickerSize").addEventListener("change", e => {
   render();
 });
 
-// 🟢 스티커 회전 슬라이더 (신규)
+// 🟢 스티커 회전 슬라이더
 $("stickerRotation")?.addEventListener("input", e => {
   const sticker = state.stickers.find(s => s.id === state.selectedStickerId);
   if (!sticker) return;
-  // 실시간으로 렌더링만 하고, 저장은 change 이벤트에서
   sticker.rotation = Number(e.target.value);
   render();
 });
 
-$("stickerRotation")?.addEventListener("change", e => {
+$("stickerRotation")?.addEventListener("change", () => {
   const sticker = state.stickers.find(s => s.id === state.selectedStickerId);
   if (!sticker) return;
   remember();
@@ -387,12 +337,10 @@ $("frameType").addEventListener("change", e => { state.frameType = e.target.valu
 // ======================================
 // 13. 이미지 업로드 및 분할
 // ======================================
-// 이미지 업로드 요소
 const fileInput = $("fileInput");
 const uploadPlaceholder = $("uploadPlaceholder");
 const btnInput = $("btnInput");
 
-// 이미지 불러오기 버튼
 btnInput?.addEventListener("click", () => {
   fileInput?.click();
 });
@@ -401,10 +349,8 @@ uploadPlaceholder?.addEventListener("click", () => {
   fileInput?.click();
 });
 
-// 이미지 선택 및 불러오기
 fileInput?.addEventListener("change", async (e) => {
   const file = e.target.files?.[0];
-
   if (!file) return;
 
   try {
@@ -415,51 +361,6 @@ fileInput?.addEventListener("change", async (e) => {
   } finally {
     e.target.value = "";
   }
-});
-
-// 사진 분할 업로드 (2등분 / 4등분)
-const splitFileInput = $("splitFileInput");
-
-$("split2Btn")?.addEventListener("click", () => {
-  if (!splitFileInput) return;
-
-  splitFileInput.onchange = async (e) => {
-    const file = e.target.files?.[0];
-
-    if (!file) return;
-
-    try {
-      await handleFile(file, "2");
-    } catch (error) {
-      console.error("2분할 이미지 업로드 실패:", error);
-      alert("이미지 분할에 실패했습니다.");
-    } finally {
-      e.target.value = "";
-    }
-  };
-
-  splitFileInput.click();
-});
-
-$("split4Btn")?.addEventListener("click", () => {
-  if (!splitFileInput) return;
-
-  splitFileInput.onchange = async (e) => {
-    const file = e.target.files?.[0];
-
-    if (!file) return;
-
-    try {
-      await handleFile(file, "4");
-    } catch (error) {
-      console.error("4분할 이미지 업로드 실패:", error);
-      alert("이미지 분할에 실패했습니다.");
-    } finally {
-      e.target.value = "";
-    }
-  };
-
-  splitFileInput.click();
 });
 
 // ======================================
@@ -477,9 +378,6 @@ $("customStickerInput")?.addEventListener("change", async e => {
   e.target.value = "";
 });
 
-// (HTML에 커스텀 폰트 추가 버튼이 있다면 연결)
-// 예: $("customFontInput")?.addEventListener("change", async e => { ... });
-
 // ======================================
 // 15. 화면비, 줌, 캔버스 이벤트
 // ======================================
@@ -488,8 +386,20 @@ $("aspectRatio").addEventListener("change", e => {
   updateCanvasSize();
 });
 
-$("zoomInBtn").addEventListener("click", () => { state.zoomLevel = Math.min(2, state.zoomLevel + 0.1); updateCanvasSize(); });
-$("zoomOutBtn").addEventListener("click", () => { state.zoomLevel = Math.max(0.5, state.zoomLevel - 0.1); updateCanvasSize(); });
+// 🟢 줌 인 / 줌 아웃 이벤트 (캔버스 크기 조절)
+$("zoomInBtn").addEventListener("click", () => {
+  if (state.zoomLevel < 2.0) {
+    state.zoomLevel += 0.1;
+    updateCanvasSize();
+  }
+});
+
+$("zoomOutBtn").addEventListener("click", () => {
+  if (state.zoomLevel > 0.5) {
+    state.zoomLevel -= 0.1;
+    updateCanvasSize();
+  }
+});
 
 canvas.addEventListener("pointerdown", event => {
   if (event.button !== 0) return;
@@ -556,10 +466,10 @@ $("closeModalBtn").addEventListener("click", closeTemplateModal);
 $("templateModal").addEventListener("click", e => { if (e.target === $("templateModal")) closeTemplateModal(); });
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeTemplateModal(); });
 
-// 🟢 JSON 저장 버튼 (기존 INPUT 버튼 위치)
+// 🟢 JSON 저장 버튼
 $("btnSaveJson")?.addEventListener("click", exportToJson);
 
-// 🟢 JSON 불러오기 (파일 입력 연결)
+// 🟢 JSON 불러오기
 $("jsonFileInput")?.addEventListener("change", e => {
   const file = e.target.files?.[0];
   if (file) importFromJson(file);
@@ -583,10 +493,74 @@ $("btnOutput").addEventListener("click", () => {
 });
 
 // ======================================
-// 17. 초기 실행
+// 17. 🟢 사진 분할 레이아웃 및 업로드 이벤트 (신규 추가)
+// ======================================
+const splitOverlay = $("splitOverlay");
+const splitZoneBtns = document.querySelectorAll(".split-zone-btn");
+const slotFileInput = $("slotFileInput");
+let currentSlotIndex = 0;
+
+// 레이아웃 변경 함수
+function setLayout(layout) {
+  state.splitLayout = layout;
+  state.splitImages = [null, null, null, null];
+
+  splitOverlay.className = "split-overlay";
+  if (layout === 2) splitOverlay.classList.add("mode-2");
+  if (layout === 4) splitOverlay.classList.add("mode-4");
+
+  if (layout === 1) {
+    splitOverlay.style.display = "none";
+    uploadPlaceholder.style.display = "flex";
+  } else {
+    splitOverlay.style.display = "grid";
+    uploadPlaceholder.style.display = "none";
+  }
+
+  $("layout1Btn").style.background = layout === 1 ? "#bfdbfe" : "#e6efff";
+  $("layout2Btn").style.background = layout === 2 ? "#bfdbfe" : "#e6efff";
+  $("layout4Btn").style.background = layout === 4 ? "#bfdbfe" : "#e6efff";
+
+  render();
+}
+
+$("layout1Btn")?.addEventListener("click", () => setLayout(1));
+$("layout2Btn")?.addEventListener("click", () => setLayout(2));
+$("layout4Btn")?.addEventListener("click", () => setLayout(4));
+
+splitZoneBtns.forEach(btn => {
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    currentSlotIndex = Number(btn.dataset.slot);
+    slotFileInput.click();
+  });
+});
+
+slotFileInput?.addEventListener("change", (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    state.splitImages[currentSlotIndex] = img;
+    render();
+    setStatus(`${currentSlotIndex + 1}번째 칸에 사진이 추가되었습니다.`);
+    URL.revokeObjectURL(url);
+  };
+  img.onerror = () => {
+    setStatus("이미지를 불러오지 못했습니다.", true);
+    URL.revokeObjectURL(url);
+  };
+  img.src = url;
+  e.target.value = "";
+});
+
+// ======================================
+// 18. 초기 실행
 // ======================================
 $("frameType").value = state.frameType || "none";
-renderStickerPanel(); // 🟢 스티커 패널 초기 렌더링
-restoreCustomFonts(); // 🟢 커스텀 폰트 복원
+renderStickerPanel();
+restoreCustomFonts();
 window.addEventListener("resize", updateCanvasSize);
 updateCanvasSize();
