@@ -22,9 +22,9 @@ import {
   addCustomFont,
   restoreCustomFonts,
   createSpeechBubbleSticker
-} from "./custom-assets.js";
+} from "./assets-library.js";
 
-import { BUILTIN_STICKERS } from "./stickers-data.js";
+import { BUILTIN_STICKERS } from "./sticker-assets.js";
 
 // ======================================
 // 1. 기본 설정
