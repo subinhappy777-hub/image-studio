@@ -171,9 +171,11 @@ document.querySelectorAll(".tool-btn").forEach(button => {
 // ======================================
 // 8. 🟢 스티커 패널 동적 렌더링 (카테고리 분류)
 // ======================================
+
 function renderStickerPanel() {
   const grid = $("stickerGrid");
   if (!grid) return;
+
   grid.innerHTML = "";
 
   const categories = [
@@ -191,17 +193,20 @@ function renderStickerPanel() {
     const container = document.createElement("div");
     container.className = "sticker-grid";
 
-    // 데이터 가져오기 (내장 + 커스텀)
     let items = BUILTIN_STICKERS[cat.key] || [];
-    if (cat.key === "custom") items = getCustomStickers();
+
+    if (cat.key === "custom") {
+      items = getCustomStickers();
+    }
 
     items.forEach(item => {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "sticker-item";
-      
-      if (item.kind === "emoji") btn.textContent = item.emoji;
-      else if (item.kind === "speech") {
+
+      if (item.kind === "emoji") {
+        btn.textContent = item.emoji;
+      } else if (item.kind === "speech") {
         btn.textContent = item.text;
         btn.classList.add("speech-bubble");
       } else if (item.kind === "image") {
@@ -213,18 +218,26 @@ function renderStickerPanel() {
       btn.addEventListener("click", () => {
         selectedStickerData = item;
         state.selectedStickerId = null;
-        activeTool = "sticker"; // 스티커를 선택하면 스티커 도구도 자동 활성화
-        //document.querySelectorAll(".sticker-item").forEach(b => b.classList.remove("selected"));
-        document.querySelectorAll(".tool-btn").forEach(btn => {
-         const selected = btn.dataset.tool === "sticker";
-         btn.classList.toggle("active", selected);
+        activeTool = "sticker";
 
-         if (btn.dataset.tool !== "undo") {
-             btn.setAttribute("aria-pressed", String(selected));
+        document.querySelectorAll(".tool-btn").forEach(toolBtn => {
+          const selected = toolBtn.dataset.tool === "sticker";
+          toolBtn.classList.toggle("active", selected);
+
+          if (toolBtn.dataset.tool !== "undo") {
+            toolBtn.setAttribute("aria-pressed", String(selected));
           }
         });
+
+        document.querySelectorAll(".sticker-item").forEach(stickerBtn => {
+          stickerBtn.classList.remove("selected");
+        });
+
         btn.classList.add("selected");
-        setStatus(`"${item.name}" 스티커를 선택했습니다. 이미지를 클릭해 붙여보세요.`);
+
+        setStatus(
+          `"${item.name}" 스티커를 선택했습니다. 이미지를 클릭해 붙여보세요.`
+        );
       });
 
       container.appendChild(btn);
@@ -233,6 +246,7 @@ function renderStickerPanel() {
     grid.appendChild(container);
   });
 }
+
 
 // ======================================
 // 9. 스티커 추가
@@ -273,6 +287,10 @@ function addSticker(x, y) {
 
   state.stickers.push(sticker);
   state.selectedStickerId = sticker.id;
+
+  console.log("선택된 스티커:", selectedStickerData);
+  console.log("캔버스에 추가된 스티커:", sticker);
+  console.log("전체 스티커 목록:", state.stickers);
 
   render();
 
