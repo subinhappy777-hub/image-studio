@@ -213,6 +213,7 @@ function renderStickerPanel() {
       btn.addEventListener("click", () => {
         selectedStickerData = item;
         state.selectedStickerId = null;
+        activeTool = "sticker"; // 스티커를 선택하면 스티커 도구도 자동 활성화
         document.querySelectorAll(".sticker-item").forEach(b => b.classList.remove("selected"));
         btn.classList.add("selected");
         setStatus(`"${item.name}" 스티커를 선택했습니다. 이미지를 클릭해 붙여보세요.`);
@@ -228,34 +229,48 @@ function renderStickerPanel() {
 // ======================================
 // 9. 스티커 추가
 // ======================================
+
 function addSticker(x, y) {
-  if (!selectedStickerData) return;
+  if (!selectedStickerData) {
+    setStatus("먼저 스티커 창에서 스티커를 선택해 주세요.", true);
+    return;
+  }
+
   remember();
 
   const sticker = {
     id: crypto.randomUUID(),
-    x, y,
-    size: Number($("stickerSize").value),
-    rotation: 0 // 🟢 회전 초기값
+    x,
+    y,
+    size: Number($("stickerSize")?.value) || 120,
+    rotation: 0,
+    kind: selectedStickerData.kind,
+    name: selectedStickerData.name
   };
 
+  // 이모지 스티커
   if (selectedStickerData.kind === "emoji") {
-    sticker.type = "emoji";
     sticker.emoji = selectedStickerData.emoji;
-  } else if (selectedStickerData.kind === "speech") {
-    sticker.type = "speech";
-    sticker.emoji = selectedStickerData.text; // 말풍선 텍스트
-  } else {
-    sticker.type = "image";
-    sticker.emoji = "🖼️"; // 렌더링용 (실제 이미지는 state.js에서)
+  }
+
+  // 말풍선 스티커
+  else if (selectedStickerData.kind === "speech") {
+    sticker.text = selectedStickerData.text;
+  }
+
+  // 이미지 스티커
+  else if (selectedStickerData.kind === "image") {
     sticker.src = selectedStickerData.src;
   }
 
   state.stickers.push(sticker);
   state.selectedStickerId = sticker.id;
+
   render();
-  setStatus(`스티커를 추가했습니다.`);
+
+  setStatus("스티커를 추가했습니다.");
 }
+
 
 // ======================================
 // 10. 스티커 선택 및 이동/회전

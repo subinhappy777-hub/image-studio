@@ -328,6 +328,7 @@ function drawTexts() {
 
 const stickerImageCache = new Map();
 
+
 function getStickerImage(src) {
   if (!src) return null;
 
@@ -337,8 +338,9 @@ function getStickerImage(src) {
 
   const img = new Image();
 
-  // 로딩이 완료되면 다시 캔버스를 그립니다.
-  img.onload = () => render();
+  img.onload = () => {
+    render();
+  };
 
   img.onerror = () => {
     console.error("스티커 이미지 로드 실패:", src);
@@ -350,14 +352,16 @@ function getStickerImage(src) {
   return img;
 }
 
+
+
 function drawStickers() {
   for (const sticker of state.stickers) {
     if (!sticker) continue;
 
     ctx.save();
 
-    const x = (Number(sticker.x) || 50) * canvas.width / 100;
-    const y = (Number(sticker.y) || 50) * canvas.height / 100;
+    const x = (Number(sticker.x) || 0) * canvas.width / 100;
+    const y = (Number(sticker.y) || 0) * canvas.height / 100;
     const size = Number(sticker.size) || 120;
 
     ctx.translate(x, y);
@@ -367,45 +371,56 @@ function drawStickers() {
 
     ctx.rotate(rotation);
 
-    // 커스텀 이미지 스티커
-    if (sticker.type === "custom" && sticker.src) {
+    // 이미지형 스티커
+    if (sticker.kind === "image" || sticker.type === "custom" || sticker.type === "image") {
       const img = getStickerImage(sticker.src);
 
       if (img && img.complete && img.naturalWidth > 0) {
+        const ratio = Math.min(
+          size / img.naturalWidth,
+          size / img.naturalHeight
+        );
+
+        const width = img.naturalWidth * ratio;
+        const height = img.naturalHeight * ratio;
+
         ctx.drawImage(
           img,
-          -size / 2,
-          -size / 2,
-          size,
-          size
+          -width / 2,
+          -height / 2,
+          width,
+          height
         );
       }
     }
 
     // 말풍선 스티커
-    else if (sticker.type === "speech") {
-      ctx.font = `bold ${size * 0.4}px sans-serif`;
+    else if (sticker.kind === "speech" || sticker.type === "speech") {
+      const message = sticker.text || sticker.emoji || "💬";
+
+      ctx.font = `bold ${size * 0.2}px sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
 
-      const emoji = sticker.emoji || "💬";
-      const textWidth = ctx.measureText(emoji).width;
-      const padding = size * 0.3;
+      const textWidth = ctx.measureText(message).width;
+      const padding = size * 0.2;
+      const boxWidth = textWidth + padding * 2;
+      const boxHeight = size * 0.65;
 
       ctx.fillStyle = sticker.color || "#ffffff";
 
       ctx.beginPath();
       ctx.roundRect(
-        -textWidth / 2 - padding,
-        -size / 2,
-        textWidth + padding * 2,
-        size,
-        size * 0.3
+        -boxWidth / 2,
+        -boxHeight / 2,
+        boxWidth,
+        boxHeight,
+        size * 0.15
       );
       ctx.fill();
 
-      ctx.fillStyle = "#000000";
-      ctx.fillText(emoji, 0, 0);
+      ctx.fillStyle = "#333333";
+      ctx.fillText(message, 0, 0);
     }
 
     // 기본 이모지 스티커
@@ -419,6 +434,7 @@ function drawStickers() {
     ctx.restore();
   }
 }
+
 
 
 // ======================================
