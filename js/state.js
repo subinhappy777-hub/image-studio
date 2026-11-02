@@ -355,6 +355,9 @@ function getStickerImage(src) {
 
 
 function drawStickers() {
+  console.log("drawStickers 실행됨");
+  console.log("캔버스 크기:", canvas.width, canvas.height);
+  console.log("스티커 데이터:", state.stickers);
   for (const sticker of state.stickers) {
     if (!sticker) continue;
 
