@@ -18,7 +18,7 @@ const history = [];
 const HISTORY_LIMIT = 30;
 
 // ======================================
-// 2. 편집 기록 저장
+// 2. 편집 기록 저장 (Undo)
 // ======================================
 function snapshot() {
   return {
@@ -38,9 +38,6 @@ function remember() {
   if (history.length > HISTORY_LIMIT) history.shift();
 }
 
-// ======================================
-// 3. 실행 취소
-// ======================================
 function undo() {
   const previous = history.pop();
   if (!previous) {
@@ -61,7 +58,7 @@ function undo() {
 }
 
 // ======================================
-// 4. 캔버스 좌표 계산
+// 3. 캔버스 좌표 계산
 // ======================================
 function getCoords(event) {
   const rect = canvas.getBoundingClientRect();
@@ -72,7 +69,50 @@ function getCoords(event) {
 }
 
 // ======================================
-// 5. 문구 추가
+// 4. 🟢 도구 선택 (탭 전환 및 패널 변경) - 가장 중요!
+// ======================================
+document.querySelectorAll(".tool-btn").forEach(button => {
+  button.addEventListener("click", () => {
+    const tool = button.dataset.tool;
+
+    // 1) 실행 취소(Undo) 처리
+    if (tool === "undo") {
+      undo();
+      return;
+    }
+
+    // 2) 활성 도구 변경
+    activeTool = tool;
+
+    // 3) 모든 탭 버튼 활성화 상태 초기화 및 현재 탭 활성화
+    document.querySelectorAll(".tool-btn").forEach(btn => {
+      const isSelected = btn === button;
+      btn.classList.toggle("active", isSelected);
+      if (btn.dataset.tool !== "undo") {
+        btn.setAttribute("aria-pressed", String(isSelected));
+      }
+    });
+
+    // 4) 오른쪽 패널 전환 (opt-text, opt-draw, opt-sticker, opt-image)
+    document.querySelectorAll(".opt-content").forEach(panel => {
+      panel.classList.toggle("active", panel.id === `opt-${tool}`);
+    });
+
+    // 5) 도구별 캔버스 커서 변경
+    if (tool === "draw") {
+      canvas.style.cursor = "crosshair";
+    } else if (tool === "text") {
+      canvas.style.cursor = "text";
+    } else {
+      canvas.style.cursor = "default";
+    }
+
+    setStatus(`"${button.querySelector("span").textContent}" 도구가 활성화되었습니다.`);
+  });
+});
+
+// ======================================
+// 5. 문구 추가 및 동기화
 // ======================================
 function addText(value, x = 50, y = 50) {
   const text = String(value).trim();
@@ -90,7 +130,7 @@ function addText(value, x = 50, y = 50) {
     fontSize: Number($("fontSize").value),
     fontFamily: $("fontFamily").value,
     color: $("colorInput").value,
-    bold: $("fontBold").checked // 🟢 볼드 기능 추가
+    bold: $("fontBold").checked
   };
 
   state.texts.push(item);
@@ -99,9 +139,6 @@ function addText(value, x = 50, y = 50) {
   setStatus("문구를 추가했습니다.");
 }
 
-// ======================================
-// 6. 문구 선택 및 동기화
-// ======================================
 function selectedText() {
   return state.texts.find(text => text.id === state.selectedTextId) || null;
 }
@@ -120,34 +157,11 @@ function syncTextControls(text) {
   $("fontSizeValue").textContent = String(text.fontSize);
   $("colorInput").value = text.color;
   $("fontFamily").value = text.fontFamily;
-  $("fontBold").checked = text.bold || false; // 🟢 볼드 동기화
+  $("fontBold").checked = text.bold || false;
 }
 
 // ======================================
-// 7. 도구 선택
-// ======================================
-document.querySelectorAll(".tool-btn").forEach(button => {
-  button.addEventListener("click", () => {
-    const tool = button.dataset.tool;
-
-    if (tool === "undo") { undo(); return; }
-
-    activeTool = tool;
-
-    document.querySelectorAll(".tool-btn").forEach(btn => {
-      const selected = btn === button;
-      btn.classList.toggle("active", selected);
-      if (btn.dataset.tool !== "undo") btn.setAttribute("aria-pressed", String(selected));
-    });
-
-    document.querySelectorAll(".opt-content").forEach(panel => {
-      panel.classList.toggle("active", panel.id === `opt-${tool}`);
-    });
-  });
-});
-
-// ======================================
-// 8. 🟢 스티커 패널 동적 렌더링 (카테고리 분류)
+// 6. 🟢 스티커 패널 동적 렌더링 (카테고리별)
 // ======================================
 function renderStickerPanel() {
   const grid = $("stickerGrid");
@@ -193,18 +207,22 @@ function renderStickerPanel() {
         state.selectedStickerId = null;
         activeTool = "sticker";
 
+        // 🟢 스티커 클릭 시 툴바의 스티커 탭으로 자동 이동
         document.querySelectorAll(".tool-btn").forEach(toolBtn => {
-          const selected = toolBtn.dataset.tool === "sticker";
-          toolBtn.classList.toggle("active", selected);
+          const isSelected = toolBtn.dataset.tool === "sticker";
+          toolBtn.classList.toggle("active", isSelected);
           if (toolBtn.dataset.tool !== "undo") {
-            toolBtn.setAttribute("aria-pressed", String(selected));
+            toolBtn.setAttribute("aria-pressed", String(isSelected));
           }
         });
+        document.querySelectorAll(".opt-content").forEach(panel => {
+          panel.classList.toggle("active", panel.id === "opt-sticker");
+        });
 
+        // 선택 UI 업데이트
         document.querySelectorAll(".sticker-item").forEach(stickerBtn => {
           stickerBtn.classList.remove("selected");
         });
-
         btn.classList.add("selected");
 
         setStatus(`"${item.name}" 스티커를 선택했습니다. 이미지를 클릭해 붙여보세요.`);
@@ -217,7 +235,7 @@ function renderStickerPanel() {
 }
 
 // ======================================
-// 9. 스티커 추가
+// 7. 스티커 추가 및 선택
 // ======================================
 function addSticker(x, y) {
   if (!selectedStickerData) {
@@ -235,13 +253,9 @@ function addSticker(x, y) {
     name: selectedStickerData.name
   };
 
-  if (selectedStickerData.kind === "emoji") {
-    sticker.emoji = selectedStickerData.emoji;
-  } else if (selectedStickerData.kind === "speech") {
-    sticker.text = selectedStickerData.text;
-  } else if (selectedStickerData.kind === "image") {
-    sticker.src = selectedStickerData.src;
-  }
+  if (selectedStickerData.kind === "emoji") sticker.emoji = selectedStickerData.emoji;
+  else if (selectedStickerData.kind === "speech") sticker.text = selectedStickerData.text;
+  else if (selectedStickerData.kind === "image") sticker.src = selectedStickerData.src;
 
   state.stickers.push(sticker);
   state.selectedStickerId = sticker.id;
@@ -249,9 +263,6 @@ function addSticker(x, y) {
   setStatus("스티커를 추가했습니다.");
 }
 
-// ======================================
-// 10. 스티커 선택 및 이동/회전
-// ======================================
 function pickSticker(x, y) {
   return [...state.stickers].reverse().find(sticker => {
     const width = sticker.size / canvas.width * 100;
@@ -260,6 +271,9 @@ function pickSticker(x, y) {
   });
 }
 
+// ======================================
+// 8. 스티커 설정 이벤트
+// ======================================
 $("stickerSize").addEventListener("change", e => {
   const sticker = state.stickers.find(s => s.id === state.selectedStickerId);
   if (!sticker) return;
@@ -268,7 +282,6 @@ $("stickerSize").addEventListener("change", e => {
   render();
 });
 
-// 🟢 스티커 회전 슬라이더
 $("stickerRotation")?.addEventListener("input", e => {
   const sticker = state.stickers.find(s => s.id === state.selectedStickerId);
   if (!sticker) return;
@@ -296,7 +309,7 @@ $("deleteStickerBtn").addEventListener("click", () => {
 });
 
 // ======================================
-// 11. 텍스트 설정 이벤트 (볼드/폰트)
+// 9. 텍스트 설정 이벤트
 // ======================================
 $("addTextBtn").addEventListener("click", () => addText($("textInput").value));
 
@@ -321,38 +334,31 @@ $("fontFamily").addEventListener("change", e => {
   if (text) { text.fontFamily = e.target.value; render(); }
 });
 
-// 🟢 볼드 체크박스 이벤트
 $("fontBold").addEventListener("change", e => {
   const text = selectedText();
   if (text) { text.bold = e.target.checked; render(); }
 });
 
 // ======================================
-// 12. 이미지 설정 (배경, 크기, 프레임)
+// 10. 이미지 설정 (배경, 크기, 프레임)
 // ======================================
 $("bgColor").addEventListener("input", e => { state.background = e.target.value; render(); });
 $("imageScale").addEventListener("input", e => { state.imageScale = Number(e.target.value) / 100; render(); });
 $("frameType").addEventListener("change", e => { state.frameType = e.target.value; render(); });
 
 // ======================================
-// 13. 이미지 업로드 및 분할
+// 11. 이미지 업로드 및 분할
 // ======================================
 const fileInput = $("fileInput");
 const uploadPlaceholder = $("uploadPlaceholder");
 const btnInput = $("btnInput");
 
-btnInput?.addEventListener("click", () => {
-  fileInput?.click();
-});
-
-uploadPlaceholder?.addEventListener("click", () => {
-  fileInput?.click();
-});
+btnInput?.addEventListener("click", () => fileInput?.click());
+uploadPlaceholder?.addEventListener("click", () => fileInput?.click());
 
 fileInput?.addEventListener("change", async (e) => {
   const file = e.target.files?.[0];
   if (!file) return;
-
   try {
     await handleFile(file);
   } catch (error) {
@@ -364,7 +370,7 @@ fileInput?.addEventListener("change", async (e) => {
 });
 
 // ======================================
-// 14. 커스텀 스티커/폰트 추가
+// 12. 커스텀 스티커/폰트 추가
 // ======================================
 $("customStickerInput")?.addEventListener("change", async e => {
   const file = e.target.files?.[0];
@@ -379,14 +385,13 @@ $("customStickerInput")?.addEventListener("change", async e => {
 });
 
 // ======================================
-// 15. 화면비, 줌, 캔버스 이벤트
+// 13. 화면비 및 줌 컨트롤
 // ======================================
 $("aspectRatio").addEventListener("change", e => {
   state.aspectRatio = e.target.value;
   updateCanvasSize();
 });
 
-// 🟢 줌 인 / 줌 아웃 이벤트 (캔버스 크기 조절)
 $("zoomInBtn").addEventListener("click", () => {
   if (state.zoomLevel < 2.0) {
     state.zoomLevel += 0.1;
@@ -401,10 +406,30 @@ $("zoomOutBtn").addEventListener("click", () => {
   }
 });
 
+// ======================================
+// 14. 캔버스 마우스/터치 이벤트 (그리기 완벽 지원)
+// ======================================
 canvas.addEventListener("pointerdown", event => {
   if (event.button !== 0) return;
   const point = getCoords(event);
 
+  // 1) 그리기 도구
+  if (activeTool === "draw") {
+    remember();
+    const stroke = {
+      points: [point],
+      color: $("brushColor").value,
+      size: Number($("brushSize").value),
+      type: $("brushType").value
+    };
+    state.drawings.push(stroke);
+    drag = { type: "draw", target: stroke };
+    canvas.setPointerCapture(event.pointerId);
+    render();
+    return;
+  }
+
+  // 2) 문구 도구
   if (activeTool === "text") {
     const text = pickText(point.x, point.y);
     if (text) {
@@ -416,14 +441,11 @@ canvas.addEventListener("pointerdown", event => {
     } else {
       addText($("textInput").value, point.x, point.y);
     }
-  } else if (activeTool === "draw") {
-    remember();
-    const stroke = { points: [point], color: $("brushColor").value, size: Number($("brushSize").value), type: $("brushType").value };
-    state.drawings.push(stroke);
-    drag = { type: "draw", target: stroke };
-    canvas.setPointerCapture(event.pointerId);
-    render();
-  } else if (activeTool === "sticker") {
+    return;
+  }
+
+  // 3) 스티커 도구
+  if (activeTool === "sticker") {
     const sticker = pickSticker(point.x, point.y);
     if (sticker) {
       remember();
@@ -435,10 +457,15 @@ canvas.addEventListener("pointerdown", event => {
     } else {
       addSticker(point.x, point.y);
     }
-  } else if (activeTool === "image" && state.image) {
+    return;
+  }
+
+  // 4) 이미지 도구
+  if (activeTool === "image" && state.image) {
     remember();
     drag = { type: "image", offsetX: point.x - state.imageX, offsetY: point.y - state.imageY };
     canvas.setPointerCapture(event.pointerId);
+    return;
   }
 });
 
@@ -458,7 +485,7 @@ canvas.addEventListener("pointerup", stopDrag);
 canvas.addEventListener("pointercancel", stopDrag);
 
 // ======================================
-// 16. SAVE / JSON / OUTPUT
+// 15. SAVE / JSON / OUTPUT
 // ======================================
 $("btnSave").addEventListener("click", openTemplateModal);
 $("createTemplateBtn").addEventListener("click", createTemplate);
@@ -466,10 +493,8 @@ $("closeModalBtn").addEventListener("click", closeTemplateModal);
 $("templateModal").addEventListener("click", e => { if (e.target === $("templateModal")) closeTemplateModal(); });
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeTemplateModal(); });
 
-// 🟢 JSON 저장 버튼
 $("btnSaveJson")?.addEventListener("click", exportToJson);
 
-// 🟢 JSON 불러오기
 $("jsonFileInput")?.addEventListener("change", e => {
   const file = e.target.files?.[0];
   if (file) importFromJson(file);
@@ -493,14 +518,13 @@ $("btnOutput").addEventListener("click", () => {
 });
 
 // ======================================
-// 17. 🟢 사진 분할 레이아웃 및 업로드 이벤트 (신규 추가)
+// 16. 사진 분할 레이아웃 및 업로드 이벤트
 // ======================================
 const splitOverlay = $("splitOverlay");
 const splitZoneBtns = document.querySelectorAll(".split-zone-btn");
 const slotFileInput = $("slotFileInput");
 let currentSlotIndex = 0;
 
-// 레이아웃 변경 함수
 function setLayout(layout) {
   state.splitLayout = layout;
   state.splitImages = [null, null, null, null];
@@ -557,7 +581,7 @@ slotFileInput?.addEventListener("change", (e) => {
 });
 
 // ======================================
-// 18. 초기 실행
+// 17. 초기 실행
 // ======================================
 $("frameType").value = state.frameType || "none";
 renderStickerPanel();
