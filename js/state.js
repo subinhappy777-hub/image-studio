@@ -321,63 +321,105 @@ function drawTexts() {
   }
 }
 
+
 // ======================================
-// 12. ★ 스티커 렌더링 (회전 & 커스텀 & 말풍선 추가)
+// 12. 스티커 렌더링 (이미지 로딩 캐시 적용)
 // ======================================
+
+const stickerImageCache = new Map();
+
+function getStickerImage(src) {
+  if (!src) return null;
+
+  if (stickerImageCache.has(src)) {
+    return stickerImageCache.get(src);
+  }
+
+  const img = new Image();
+
+  // 로딩이 완료되면 다시 캔버스를 그립니다.
+  img.onload = () => render();
+
+  img.onerror = () => {
+    console.error("스티커 이미지 로드 실패:", src);
+  };
+
+  stickerImageCache.set(src, img);
+  img.src = src;
+
+  return img;
+}
 
 function drawStickers() {
   for (const sticker of state.stickers) {
+    if (!sticker) continue;
+
     ctx.save();
 
-    const x = sticker.x * canvas.width / 100;
-    const y = sticker.y * canvas.height / 100;
+    const x = (Number(sticker.x) || 50) * canvas.width / 100;
+    const y = (Number(sticker.y) || 50) * canvas.height / 100;
     const size = Number(sticker.size) || 120;
 
-    // 🟢 회전(Rotation) 적용을 위해 중심점 이동 및 회전
     ctx.translate(x, y);
-    const rotation = (Number(sticker.rotation) || 0) * (Math.PI / 180); // 도 -> 라디안
+
+    const rotation =
+      (Number(sticker.rotation) || 0) * Math.PI / 180;
+
     ctx.rotate(rotation);
 
-    // 🟢 커스텀 스티커(이미지)인 경우
+    // 커스텀 이미지 스티커
     if (sticker.type === "custom" && sticker.src) {
-      const img = new Image();
-      img.src = sticker.src;
-      // 이미지가 로드된 상태라면 그리기 (메인 렌더링에서는 로드가 안 되어 있을 수 있음)
-      // 안정성을 위해 임시 이미지 객체를 캐시하는 것이 좋지만, 여기서는 심플하게 처리
-      if (img.complete) {
-        ctx.drawImage(img, -size / 2, -size / 2, size, size);
+      const img = getStickerImage(sticker.src);
+
+      if (img && img.complete && img.naturalWidth > 0) {
+        ctx.drawImage(
+          img,
+          -size / 2,
+          -size / 2,
+          size,
+          size
+        );
       }
-    } 
-    // 🟢 말풍선 스티커인 경우
+    }
+
+    // 말풍선 스티커
     else if (sticker.type === "speech") {
       ctx.font = `bold ${size * 0.4}px sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      
-      // 말풍선 배경 그리기 (간단한 둥근 사각형)
-      ctx.fillStyle = sticker.color || "#ffffff";
-      const textWidth = ctx.measureText(sticker.emoji).width;
+
+      const emoji = sticker.emoji || "💬";
+      const textWidth = ctx.measureText(emoji).width;
       const padding = size * 0.3;
-      
+
+      ctx.fillStyle = sticker.color || "#ffffff";
+
       ctx.beginPath();
-      ctx.roundRect(-textWidth/2 - padding, -size/2, textWidth + padding*2, size, size*0.3);
+      ctx.roundRect(
+        -textWidth / 2 - padding,
+        -size / 2,
+        textWidth + padding * 2,
+        size,
+        size * 0.3
+      );
       ctx.fill();
 
-      // 텍스트 그리기
       ctx.fillStyle = "#000000";
-      ctx.fillText(sticker.emoji, 0, 0);
-    } 
-    // 🟢 기본 이모지 스티커인 경우
+      ctx.fillText(emoji, 0, 0);
+    }
+
+    // 기본 이모지 스티커
     else {
       ctx.font = `${size}px "Segoe UI Emoji", "Apple Color Emoji", sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText(sticker.emoji, 0, 0);
+      ctx.fillText(sticker.emoji || "⭐", 0, 0);
     }
 
     ctx.restore();
   }
 }
+
 
 // ======================================
 // 13. 사진 프레임 그리기
