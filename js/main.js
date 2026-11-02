@@ -214,7 +214,15 @@ function renderStickerPanel() {
         selectedStickerData = item;
         state.selectedStickerId = null;
         activeTool = "sticker"; // 스티커를 선택하면 스티커 도구도 자동 활성화
-        document.querySelectorAll(".sticker-item").forEach(b => b.classList.remove("selected"));
+        //document.querySelectorAll(".sticker-item").forEach(b => b.classList.remove("selected"));
+        document.querySelectorAll(".tool-btn").forEach(btn => {
+         const selected = btn.dataset.tool === "sticker";
+         btn.classList.toggle("active", selected);
+
+         if (btn.dataset.tool !== "undo") {
+             btn.setAttribute("aria-pressed", String(selected));
+          }
+        });
         btn.classList.add("selected");
         setStatus(`"${item.name}" 스티커를 선택했습니다. 이미지를 클릭해 붙여보세요.`);
       });
