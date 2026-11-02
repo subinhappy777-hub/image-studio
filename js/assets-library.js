@@ -38,6 +38,7 @@ export function getCustomStickers() {
   return read(STICKER_KEY);
 }
 
+// 🟢 기존 코드에 있던 삭제 함수 (이미 완벽하게 구현되어 있습니다)
 export function deleteCustomSticker(id) {
   return store(
     STICKER_KEY,

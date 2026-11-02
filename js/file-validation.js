@@ -124,6 +124,7 @@ export async function handleFile(file) {
     state.image = image;
 
     // 이미지 위치 및 크기 초기화
+    // 🟢 신규: 이미지 이동/확대/축소가 원활하도록 초기 상태를 완벽하게 재설정합니다.
     state.imageScale = 1;
     state.imageX = 50;
     state.imageY = 50;
@@ -150,11 +151,17 @@ export async function handleFile(file) {
     // 2-7. HTML 설정값 초기화
     // ======================================
 
-    document.getElementById("imageScale").value = "100";
+    // 🟢 신규: 이미지 크기 슬라이더를 100%로 동기화
+    const imageScaleInput = document.getElementById("imageScale");
+    if (imageScaleInput) {
+      imageScaleInput.value = "100";
+    }
 
-    document.getElementById(
-      "uploadPlaceholder"
-    ).style.display = "none";
+    // 🟢 신규: 업로드 안내창 숨기기
+    const uploadPlaceholder = document.getElementById("uploadPlaceholder");
+    if (uploadPlaceholder) {
+      uploadPlaceholder.style.display = "none";
+    }
 
     // ======================================
     // 2-8. 캔버스 다시 그리기

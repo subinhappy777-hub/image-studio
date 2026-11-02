@@ -467,6 +467,8 @@ input[type="color"] {
   align-items: center;
   justify-content: center;
   min-height: 52px;
+  height: 60px; /* 🟢 추가: 버튼 높이 고정 */
+  overflow: hidden; /* 🟢 추가: 넘치는 이미지 숨김 */
   border: 2px solid #e2e8f0;
   border-radius: 12px;
   background: #fff;
@@ -474,6 +476,14 @@ input[type="color"] {
   cursor: pointer;
   transition: transform .15s, background .15s, border-color .15s;
   padding: 4px;
+}
+
+/* 🟢 추가: 내부 이미지 태그 크기 조절 */
+.sticker-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* 비율 유지하면서 칸에 맞춤 */
+  pointer-events: none; /* 클릭이 버튼으로 전달되도록 */
 }
 
 .sticker-item:hover {
@@ -670,4 +680,68 @@ hr.divider {
 .split-overlay.mode-2 .split-zone-btn[data-slot="2"],
 .split-overlay.mode-2 .split-zone-btn[data-slot="3"] {
   display: none;
+}
+
+/* ======================================
+   15. 🟢 신규 추가: 커스텀 스티커 삭제 버튼 및 다중 포맷 UI
+   ====================================== */
+
+/* 스티커 패널 내 커스텀 스티커 삭제 X 버튼 */
+.custom-sticker-delete {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: #ff5c6c;
+  color: white;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  font-size: 12px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  z-index: 5;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.custom-sticker-delete:hover {
+  background: #e11d48;
+  transform: scale(1.1);
+}
+
+/* 다중 포맷 저장을 위한 하단 레이아웃 조정 */
+.actions {
+  grid-template-columns: 1fr 1fr 1fr 1.2fr; /* 4번째 칸을 약간 넓게 */
+}
+
+.actions .format-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.actions select {
+  width: 100%;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  font-size: 13px;
+  color: #1b2740;
+  background: white;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+/* 모바일 대응 (포맷 선택기 포함) */
+@media (max-width: 520px) {
+  .actions {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .actions .format-selector {
+    grid-column: span 2;
+  }
 }

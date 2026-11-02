@@ -1,7 +1,8 @@
 import { state, canvas, render, updateCanvasSize, setStatus } from "./state.js";
 import { handleFile } from "./file-validation.js";
 import { createTemplate, openTemplateModal, closeTemplateModal, exportToJson, importFromJson } from "./template.js";
-import { getCustomStickers, addCustomSticker, addCustomFont, restoreCustomFonts } from "./assets-library.js";
+// 🟢 신규: deleteCustomSticker 추가
+import { getCustomStickers, addCustomSticker, deleteCustomSticker, addCustomFont, restoreCustomFonts } from "./assets-library.js";
 import { BUILTIN_STICKERS } from "./sticker-assets.js";
 
 // ======================================
@@ -161,7 +162,7 @@ function syncTextControls(text) {
 }
 
 // ======================================
-// 6. 🟢 스티커 패널 동적 렌더링 (카테고리별)
+// 6. 🟢 스티커 패널 동적 렌더링 (카테고리별 + 커스텀 삭제 버튼)
 // ======================================
 function renderStickerPanel() {
   const grid = $("stickerGrid");
@@ -200,6 +201,25 @@ function renderStickerPanel() {
         const img = document.createElement("img");
         img.src = item.src;
         btn.appendChild(img);
+      }
+
+      // 🟢 신규 기능: 커스텀 스티커인 경우 삭제 버튼(X) 추가
+      if (cat.key === "custom") {
+        const delBtn = document.createElement("button");
+        delBtn.type = "button";
+        delBtn.className = "custom-sticker-delete";
+        delBtn.textContent = "✕";
+        delBtn.title = "이 스티커 삭제";
+        
+        delBtn.addEventListener("click", (e) => {
+          e.stopPropagation(); // 스티커 선택 이벤트 방지
+          if (confirm(`"${item.name}" 스티커를 삭제하시겠습니까?`)) {
+            deleteCustomSticker(item.id);
+            renderStickerPanel(); // 패널 갱신
+            setStatus("커스텀 스티커가 삭제되었습니다.");
+          }
+        });
+        btn.appendChild(delBtn);
       }
 
       btn.addEventListener("click", () => {
@@ -308,6 +328,21 @@ $("deleteStickerBtn").addEventListener("click", () => {
   setStatus("선택한 스티커를 삭제했습니다.");
 });
 
+// 🟢 신규 기능: 모든 스티커 일괄 삭제
+$("clearAllStickersBtn")?.addEventListener("click", () => {
+  if (state.stickers.length === 0) {
+    setStatus("삭제할 스티커가 없습니다.", true);
+    return;
+  }
+  if (!confirm("캔버스에 붙인 모든 스티커를 삭제하시겠습니까?")) return;
+  
+  remember();
+  state.stickers = [];
+  state.selectedStickerId = null;
+  render();
+  setStatus("캔버스의 모든 스티커를 삭제했습니다.");
+});
+
 // ======================================
 // 9. 텍스트 설정 이벤트
 // ======================================
@@ -343,7 +378,13 @@ $("fontBold").addEventListener("change", e => {
 // 10. 이미지 설정 (배경, 크기, 프레임)
 // ======================================
 $("bgColor").addEventListener("input", e => { state.background = e.target.value; render(); });
-$("imageScale").addEventListener("input", e => { state.imageScale = Number(e.target.value) / 100; render(); });
+
+// 🟢 이미지 크기 조절 (확대/축소)
+$("imageScale").addEventListener("input", e => { 
+  state.imageScale = Number(e.target.value) / 100; 
+  render(); 
+});
+
 $("frameType").addEventListener("change", e => { state.frameType = e.target.value; render(); });
 
 // ======================================
@@ -407,7 +448,7 @@ $("zoomOutBtn").addEventListener("click", () => {
 });
 
 // ======================================
-// 14. 캔버스 마우스/터치 이벤트 (그리기 완벽 지원)
+// 14. 캔버스 마우스/터치 이벤트 (그리기 및 이미지 이동 완벽 지원)
 // ======================================
 canvas.addEventListener("pointerdown", event => {
   if (event.button !== 0) return;
@@ -460,7 +501,7 @@ canvas.addEventListener("pointerdown", event => {
     return;
   }
 
-  // 4) 이미지 도구
+  // 4) 이미지 도구 (이동)
   if (activeTool === "image" && state.image) {
     remember();
     drag = { type: "image", offsetX: point.x - state.imageX, offsetY: point.y - state.imageY };
@@ -485,7 +526,7 @@ canvas.addEventListener("pointerup", stopDrag);
 canvas.addEventListener("pointercancel", stopDrag);
 
 // ======================================
-// 15. SAVE / JSON / OUTPUT
+// 15. SAVE / JSON / OUTPUT (다중 포맷 지원)
 // ======================================
 $("btnSave").addEventListener("click", openTemplateModal);
 $("createTemplateBtn").addEventListener("click", createTemplate);
@@ -501,20 +542,24 @@ $("jsonFileInput")?.addEventListener("change", e => {
   e.target.value = "";
 });
 
+// 🟢 신규 기능: 선택한 포맷(PNG/JPEG/WebP)으로 다운로드
 $("btnOutput").addEventListener("click", () => {
   render();
+  const format = $("outputFormat")?.value || "image/png";
+  const ext = format === "image/jpeg" ? "jpg" : format === "image/webp" ? "webp" : "png";
+
   canvas.toBlob(blob => {
-    if (!blob) { setStatus("PNG 생성 실패", true); return; }
+    if (!blob) { setStatus("파일 생성 실패", true); return; }
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `card-studio-${Date.now()}.png`;
+    link.download = `card-studio-${Date.now()}.${ext}`;
     document.body.appendChild(link);
     link.click();
     link.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    setStatus("PNG 다운로드가 시작되었습니다.");
-  }, "image/png");
+    setStatus(`${ext.toUpperCase()} 파일 다운로드가 시작되었습니다.`);
+  }, format, format === "image/jpeg" || format === "image/webp" ? 0.9 : undefined);
 });
 
 // ======================================

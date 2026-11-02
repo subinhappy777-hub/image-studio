@@ -186,6 +186,9 @@
 
           <!-- 스티커 삭제 -->
           <button id="deleteStickerBtn" class="secondary" type="button" style="margin-top:10px;">선택한 스티커 삭제</button>
+          
+          <!-- 🟢 신규 추가: 모든 스티커 삭제 -->
+          <button id="clearAllStickersBtn" class="secondary" type="button" style="margin-top:5px; background:#ffe4e6; color:#be123c;">모든 스티커 삭제</button>
 
         </div>
 
@@ -221,11 +224,15 @@
           <label for="bgColor">배경 색상</label>
           <input id="bgColor" type="color" value="#222b42">
 
-          <!-- 이미지 크기 -->
+          <!-- 🟢 신규 추가: 이미지 이동 및 확대/축소 안내 -->
+          <p class="hint" style="margin-top:10px; background:#f0f9ff; padding:10px; border-radius:8px;">
+            <strong>[이미지 도구]</strong>를 선택한 뒤 캔버스 위의 사진을 드래그하면 이동합니다.<br>
+            아래 슬라이더로 사진의 크기를 조절할 수 있습니다.
+          </p>
+
+          <!-- 이미지 크기 (단일 이미지 전용) -->
           <label for="imageScale">이미지 크기 (단일 이미지 전용)</label>
           <input id="imageScale" type="range" min="20" max="200" value="100">
-
-          <p class="hint">이미지 도구를 선택한 뒤 캔버스를 드래그하면 이미지 위치를 변경할 수 있습니다.</p>
 
           <!-- 사진 프레임 기능 -->
           <h3 style="margin-top:16px;">💖 사진 꾸미기</h3>
@@ -249,13 +256,13 @@
     <!-- 하단 주요 기능 -->
     <footer class="actions">
 
-      <!-- INPUT 버튼 (이미지 불러오기) - 복구됨 -->
+      <!-- INPUT 버튼 (이미지 불러오기) -->
       <button id="btnInput" type="button">
         INPUT
         <small>이미지 불러오기</small>
       </button>
 
-      <!-- 기존 INPUT 버튼을 JSON 저장 버튼으로 변경 -->
+      <!-- JSON 저장 버튼 -->
       <button id="btnSaveJson" type="button">
         SAVE JSON
         <small>편집 상태를 JSON으로 저장</small>
@@ -267,11 +274,17 @@
         <small>템플릿 관리</small>
       </button>
 
-      <!-- PNG 다운로드 -->
-      <button id="btnOutput" type="button">
-        OUTPUT
-        <small>PNG 다운로드</small>
-      </button>
+      <!-- 🟢 신규 추가: 다중 포맷 다운로드 -->
+      <div style="display:flex; flex-direction:column; gap:4px;">
+        <button id="btnOutput" type="button" style="background:#159b88; flex:1;">
+          OUTPUT (PNG)
+        </button>
+        <select id="outputFormat" style="padding:4px; border-radius:8px; border:1px solid #cbd5e1; font-size:12px; color:#1b2740;">
+          <option value="image/png">PNG 형식</option>
+          <option value="image/jpeg">JPEG 형식</option>
+          <option value="image/webp">WebP 형식</option>
+        </select>
+      </div>
 
     </footer>
 
