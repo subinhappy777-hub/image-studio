@@ -81,7 +81,7 @@
               <small>PNG / JPEG</small>
             </button>
             
-            <!-- 4분할 모드일 때 캔버스 위에 겹쳐질 버튼들 (새로 추가) -->
+            <!-- 4분할 모드일 때 캔버스 위에 겹쳐질 버튼들 -->
             <div id="splitOverlay" class="split-overlay">
               <button class="split-zone-btn" data-slot="0" type="button">＋<br>좌측 상단</button>
               <button class="split-zone-btn" data-slot="1" type="button">＋<br>우측 상단</button>
@@ -171,7 +171,7 @@
 
           <hr style="margin: 12px 0; border: 0; border-top: 1px solid #ddd;">
 
-          <!-- 🟢 JS가 동적으로 스티커들을 그릴 빈 컨테이너 -->
+          <!-- JS가 동적으로 스티커들을 그릴 빈 컨테이너 -->
           <div id="stickerGrid"></div>
 
           <hr style="margin: 12px 0; border: 0; border-top: 1px solid #ddd;">
@@ -192,7 +192,7 @@
         <!-- 4. 이미지 및 프레임 편집 -->
         <div id="opt-image" class="opt-content">
 
-          <!-- 🟢 사진 분할 레이아웃 기능 추가 -->
+          <!-- 사진 분할 레이아웃 기능 -->
           <h3>사진 분할 레이아웃</h3>
           <p class="hint">화면을 나누어 여러 장의 사진을 배치할 수 있습니다.</p>
           <div style="display:flex; gap:8px; margin-bottom:12px;">
@@ -249,6 +249,12 @@
     <!-- 하단 주요 기능 -->
     <footer class="actions">
 
+      <!-- INPUT 버튼 (이미지 불러오기) - 복구됨 -->
+      <button id="btnInput" type="button">
+        INPUT
+        <small>이미지 불러오기</small>
+      </button>
+
       <!-- 기존 INPUT 버튼을 JSON 저장 버튼으로 변경 -->
       <button id="btnSaveJson" type="button">
         SAVE JSON
@@ -276,7 +282,7 @@
 
     <!-- 숨겨진 파일 입력 -->
     <input id="fileInput" type="file" accept="image/png,image/jpeg,.png,.jpg,.jpeg" hidden>
-    <!-- 🟢 JSON 불러오기를 위한 숨겨진 파일 입력 추가 -->
+    <!-- JSON 불러오기를 위한 숨겨진 파일 입력 -->
     <input id="jsonFileInput" type="file" accept=".json" hidden>
 
   </main>
