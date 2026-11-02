@@ -22,20 +22,15 @@
 - 캔버스 배경색 변경
 - 1:1, 4:5, 16:9 화면 비율 지원
 - 화면 확대 및 축소
-- 사진 2분할 및 4분할 업로드
 
 ### ② 텍스트 편집
 - 원하는 문구 추가 및 수정
 - 글자 크기와 색상 변경
 - 글꼴 변경
-- 굵게(Bold) 설정
 - 캔버스 내 텍스트 위치 이동
 
 ### ③ 스티커 편집
 - 기본 이모지 스티커 제공
-- 동물 귀 및 수염 스티커 제공
-- 유행어 말풍선 스티커 제공
-- 사용자 이미지로 커스텀 스티커 추가
 - 스티커 크기 조절 및 회전
 - 스티커 위치 이동 및 삭제
 
@@ -66,23 +61,6 @@
 | 소스 코드 관리 | Git, GitHub |
 | 배포 | GitHub Pages |
 
-## 📂 4. 프로젝트 구조
-
-```text
-image-studio/
-│
-├── index.html
-├── style.css
-│
-└── js/
-    ├── main.js
-    ├── state.js
-    ├── assets-library.js
-    ├── file-validation.js
-    ├── sticker-assets.js
-    └── template.js
-```
-
 ### 주요 파일 설명
 
 | 파일 | 역할 |
@@ -91,9 +69,7 @@ image-studio/
 | style.css | 화면 디자인 및 레이아웃 |
 | main.js | 버튼 이벤트와 편집 기능 제어 |
 | state.js | 편집 상태 관리 및 캔버스 렌더링 |
-| assets-library.js | 사용자 스티커 및 폰트 관리 |
 | file-validation.js | 이미지 파일 검증 및 업로드 처리 |
-| sticker-assets.js | 기본 스티커 데이터 관리 |
 | template.js | 템플릿 저장 및 JSON 입출력 |
 
 ## 🚀 5. 실행 방법
