@@ -452,7 +452,70 @@ export function deleteTemplate(id) {
 }
 
 // ======================================
-// 10. 템플릿 목록 표시
+// 10. 🟢 JSON 파일로 내보내기 (추가된 기능)
+// ======================================
+
+export function exportToJson() {
+  try {
+    const data = {
+      version: "2.0",
+      exportedAt: new Date().toISOString(),
+      state: getCurrentState()
+    };
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `짤카드_${Date.now()}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    setStatus("JSON 파일로 저장되었습니다.");
+  } catch (error) {
+    console.error(error);
+    setStatus("JSON 저장에 실패했습니다.", true);
+  }
+}
+
+// ======================================
+// 11. 🟢 JSON 파일 불러오기 (추가된 기능)
+// ======================================
+
+export function importFromJson(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  
+  reader.onload = async (e) => {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      if (!parsed.state) throw new Error("올바른 JSON 형식이 아닙니다.");
+      
+      const template = {
+        id: crypto.randomUUID(),
+        name: `가져온 JSON ${new Date().toLocaleTimeString()}`,
+        ...parsed.state
+      };
+      
+      const templates = getTemplates();
+      templates.push(template);
+      
+      if (saveTemplates(templates)) {
+        setStatus("JSON 파일을 성공적으로 불러왔습니다.");
+        renderTemplateList();
+      }
+    } catch (err) {
+      console.error(err);
+      setStatus("JSON 파일을 읽는 데 실패했습니다.", true);
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ======================================
+// 12. 템플릿 목록 표시
 // ======================================
 
 export function renderTemplateList() {
@@ -528,7 +591,7 @@ export function renderTemplateList() {
 }
 
 // ======================================
-// 11. 템플릿 창 열기
+// 13. 템플릿 창 열기
 // ======================================
 
 export function openTemplateModal() {
@@ -543,7 +606,7 @@ export function openTemplateModal() {
 }
 
 // ======================================
-// 12. 템플릿 창 닫기
+// 14. 템플릿 창 닫기
 // ======================================
 
 export function closeTemplateModal() {
