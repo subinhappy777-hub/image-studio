@@ -1,7 +1,8 @@
 import {
   state,
   updateCanvasSize,
-  setStatus
+  setStatus,
+  reflowAllTexts
 } from "./state.js";
 
 // ======================================
@@ -104,7 +105,35 @@ function imageToData(image) {
     tempCanvas.height
   );
 
-  return tempCanvas.toDataURL("image/jpeg", 0.8);
+  // ★ PNG(투명도 보존) vs JPEG 구분
+  const src = image.src || "";
+  const isPng = src.startsWith("data:image/png") || /\.png($|\?)/i.test(src);
+
+  return isPng
+    ? tempCanvas.toDataURL("image/png")
+    : tempCanvas.toDataURL("image/jpeg", 0.8);
+}
+
+// ======================================
+// 4-1. 이미지 데이터 → Image 객체 복원 헬퍼
+// ======================================
+
+async function dataToImage(source) {
+  if (!source) return null;
+
+  if (!/^data:image\/(png|jpeg|webp);base64,/i.test(source)) {
+    throw new Error("지원하지 않는 이미지 데이터");
+  }
+
+  const image = new Image();
+
+  await new Promise((resolve, reject) => {
+    image.onload = resolve;
+    image.onerror = reject;
+    image.src = source;
+  });
+
+  return image;
 }
 
 // ======================================
@@ -115,7 +144,6 @@ function getCurrentState() {
   return {
     aspectRatio: state.aspectRatio,
 
-    // ★ 새로 추가: 사진 프레임 저장
     frameType: state.frameType || "none",
 
     texts: clone(state.texts),
@@ -131,7 +159,13 @@ function getCurrentState() {
     imageX: state.imageX,
     imageY: state.imageY,
 
-    background: state.background
+    background: state.background,
+
+    // ★ 사진 분할 저장 추가
+    splitLayout: state.splitLayout || 1,
+    splitImages: (state.splitImages || []).map(img =>
+      imageToData(img)
+    )
   };
 }
 
@@ -212,26 +246,32 @@ export async function loadTemplate(id) {
   }
 
   try {
-    let image = null;
+    // ======================================
+    // 이미지 복원 (본문 이미지)
+    // ======================================
 
-    const source =
-      template.imageData || template.imageSrc;
+    const source = template.imageData || template.imageSrc;
+    const image = await dataToImage(source);
 
-    // 이미지 데이터 검증
-    if (source) {
-      if (
-        !/^data:image\/(png|jpeg);base64,/i.test(source)
-      ) {
-        throw new Error("지원하지 않는 이미지 데이터");
-      }
+    // ======================================
+    // 사진 분할 이미지 복원
+    // ======================================
 
-      image = new Image();
+    const splitImages = await Promise.all(
+      (template.splitImages || []).map(async src => {
+        if (!src) return null;
+        try {
+          return await dataToImage(src);
+        } catch {
+          return null;
+        }
+      })
+    );
 
-      await new Promise((resolve, reject) => {
-        image.onload = resolve;
-        image.onerror = reject;
-        image.src = source;
-      });
+    // 4칸 고정 슬롯
+    const paddedSplitImages = [null, null, null, null];
+    for (let i = 0; i < 4; i++) {
+      paddedSplitImages[i] = splitImages[i] || null;
     }
 
     // ======================================
@@ -244,7 +284,6 @@ export async function loadTemplate(id) {
       "16:9"
     ];
 
-    // ★ 새로 추가: 허용되는 프레임 종류
     const allowedFrames = [
       "none",
       "heart",
@@ -256,36 +295,28 @@ export async function loadTemplate(id) {
 
     state.image = image;
 
-    // 화면비 복원
     state.aspectRatio =
       allowedRatios.includes(template.aspectRatio)
         ? template.aspectRatio
         : "1:1";
-
-    // ======================================
-    // ★ 새로 추가: 사진 프레임 복원
-    // ======================================
 
     state.frameType =
       allowedFrames.includes(template.frameType)
         ? template.frameType
         : "none";
 
-    // 문구 복원
     state.texts = clone(
       Array.isArray(template.texts)
         ? template.texts
         : []
     );
 
-    // 그림 복원
     state.drawings = clone(
       Array.isArray(template.drawings)
         ? template.drawings
         : []
     );
 
-    // 스티커 복원
     state.stickers = clone(
       Array.isArray(template.stickers)
         ? template.stickers
@@ -296,13 +327,11 @@ export async function loadTemplate(id) {
     state.selectedTextId = null;
     state.selectedStickerId = null;
 
-    // 이미지 크기 복원
     state.imageScale =
       Number.isFinite(template.imageScale)
         ? template.imageScale
         : 1;
 
-    // 이미지 위치 복원
     state.imageX =
       Number.isFinite(template.imageX)
         ? template.imageX
@@ -313,11 +342,18 @@ export async function loadTemplate(id) {
         ? template.imageY
         : 50;
 
-    // 배경 색상 복원
     state.background =
       /^#[0-9a-f]{6}$/i.test(template.background || "")
         ? template.background
         : "#222b42";
+
+    // ★ 사진 분할 상태 복원
+    state.splitLayout =
+      [1, 2, 4].includes(template.splitLayout)
+        ? template.splitLayout
+        : 1;
+
+    state.splitImages = paddedSplitImages;
 
     currentTemplateId = id;
 
@@ -329,7 +365,6 @@ export async function loadTemplate(id) {
 
     $("bgColor").value = state.background;
 
-    // ★ 새로 추가: 프레임 선택창 동기화
     $("frameType").value = state.frameType;
 
     $("imageScale").value = String(
@@ -340,8 +375,25 @@ export async function loadTemplate(id) {
     $("uploadPlaceholder").style.display =
       image ? "none" : "flex";
 
+    // ======================================
     // 캔버스 크기 및 화면 갱신
+    // ======================================
+
     updateCanvasSize();
+
+    // ★ 사진 분할 UI 동기화 이벤트 (main.js가 수신)
+    document.dispatchEvent(
+      new CustomEvent("splitLayoutChanged", {
+        detail: { layout: state.splitLayout }
+      })
+    );
+
+    // ★ 템플릿 복원 후 캔버스에 맞게 재배치/축소
+    reflowAllTexts({ shrink: true });
+
+    document.dispatchEvent(
+      new CustomEvent("requestRender")
+    );
 
     setStatus(
       `"${template.name}" 템플릿을 불러왔습니다.`
@@ -452,7 +504,7 @@ export function deleteTemplate(id) {
 }
 
 // ======================================
-// 10. 🟢 JSON 파일로 내보내기 (추가된 기능)
+// 10. JSON 파일로 내보내기
 // ======================================
 
 export function exportToJson() {
@@ -472,7 +524,7 @@ export function exportToJson() {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    
+
     setStatus("JSON 파일로 저장되었습니다.");
   } catch (error) {
     console.error(error);
@@ -481,29 +533,35 @@ export function exportToJson() {
 }
 
 // ======================================
-// 11. 🟢 JSON 파일 불러오기 (추가된 기능)
+// 11. JSON 파일 불러오기
 // ======================================
 
 export function importFromJson(file) {
   if (!file) return;
   const reader = new FileReader();
-  
+
   reader.onload = async (e) => {
     try {
       const parsed = JSON.parse(e.target.result);
       if (!parsed.state) throw new Error("올바른 JSON 형식이 아닙니다.");
-      
+
       const template = {
         id: crypto.randomUUID(),
         name: `가져온 JSON ${new Date().toLocaleTimeString()}`,
         ...parsed.state
       };
-      
+
       const templates = getTemplates();
       templates.push(template);
-      
+
       if (saveTemplates(templates)) {
-        setStatus("JSON 파일을 성공적으로 불러왔습니다.");
+        // ★ 저장 후 즉시 현재 상태에 적용 (기존엔 목록 저장만 했음)
+        const ok = await loadTemplate(template.id);
+
+        if (ok) {
+          setStatus("JSON 파일을 불러와 적용했습니다.");
+        }
+
         renderTemplateList();
       }
     } catch (err) {

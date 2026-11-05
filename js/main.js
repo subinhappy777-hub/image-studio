@@ -1,10 +1,14 @@
-import {ndo
+import {
   state,
   canvas,
   render,
   updateCanvasSize,
   setStatus,
-  measureTextLayout
+  measureTextLayout,
+  AUTO_LAYOUT,
+  fitTextToCanvas,
+  findFreeTextPosition,
+  reflowAllTexts
 } from "./state.js";
 
 import { handleFile } from "./file-validation.js";
@@ -46,6 +50,8 @@ const HISTORY_LIMIT = 30;
 
 function snapshot() {
   return {
+    aspectRatio: state.aspectRatio,
+
     texts: structuredClone(state.texts),
     drawings: structuredClone(state.drawings),
     stickers: structuredClone(state.stickers),
@@ -84,17 +90,23 @@ function undo() {
   state.selectedTextId = null;
   state.selectedStickerId = null;
 
-  // 이미지 설정 복원
+  // ★ 이미지/화면비 설정 복원 + UI 동기화
+  $("aspectRatio").value = state.aspectRatio;
   $("imageScale").value =
     String(Math.round(state.imageScale * 100));
 
   $("bgColor").value = state.background;
   $("frameType").value = state.frameType || "none";
 
+  // ★ 선택 컨트롤 초기화
+  $("stickerSize").value = "120";
+  $("stickerRotation").value = "0";
+
   // 사진 분할 레이아웃 화면 복원
   syncSplitLayoutUI();
 
-  render();
+  // ★ 캔버스 크기 복원 (내부에서 render() 호출됨)
+  updateCanvasSize();
 
   setStatus("이전 편집 상태로 되돌렸습니다.");
 }
@@ -122,7 +134,11 @@ function bindUndoStart(element, condition = () => true) {
   };
 
   element.addEventListener("pointerdown", startEdit);
-  element.addEventListener("keydown", startEdit);
+
+  // ★ keydown 대신 input에서 1회 기록 (중복 기록 방지)
+  element.addEventListener("input", () => {
+    if (!isRecorded) startEdit();
+  });
 
   // 실제 변경이 끝났거나 입력창에서 벗어났을 때 초기화
   element.addEventListener("change", finishEdit);
@@ -193,7 +209,7 @@ document.querySelectorAll(".tool-btn").forEach(button => {
 // 5. 문구 추가 및 동기화
 // ======================================
 
-function addText(value, x = 50, y = 50) {
+function addText(value, x = null, y = null) {
   const originalText = String(value ?? "");
 
   // 공백만 입력한 경우에만 추가를 막음
@@ -204,22 +220,53 @@ function addText(value, x = 50, y = 50) {
 
   remember();
 
-  const item = {
+  const base = {
     id: crypto.randomUUID(),
-
-    // 앞뒤 공백과 직접 입력한 줄바꿈을 유지
     text: originalText.slice(0, 300),
-
-    x,
-    y,
     fontSize: Number($("fontSize").value),
     fontFamily: $("fontFamily").value,
     color: $("colorInput").value,
-    bold: $("fontBold").checked
+    bold: $("fontBold").checked,
+    x: 50,
+    y: 50
+  };
+
+  let finalX;
+  let finalY;
+  let finalSize;
+
+  if (x === null || y === null) {
+    // ★ 자동 배치: 겹치지 않는 위치 + 공간 부족 시 축소
+    const pos = findFreeTextPosition(base);
+    finalX = pos.x;
+    finalY = pos.y;
+    finalSize = pos.fontSize;
+  } else {
+    // 사용자가 캔버스 클릭한 좌표 사용
+    finalX = x;
+    finalY = y;
+
+    // ★ 세로 초과 방지 + 자동 축소
+    const fitted = fitTextToCanvas({ ...base, x, y });
+    finalSize = fitted.fontSize;
+
+    // clamp된 y 재계산
+    finalY = (fitted.layout.centerY / canvas.height) * 100;
+  }
+
+  const item = {
+    ...base,
+    x: finalX,
+    y: finalY,
+    fontSize: finalSize
   };
 
   state.texts.push(item);
   state.selectedTextId = item.id;
+
+  // ★ 추가 후 UI 슬라이더 동기화
+  $("fontSize").value = String(finalSize);
+  $("fontSizeValue").textContent = String(finalSize);
 
   render();
   setStatus("문구를 추가했습니다.");
@@ -444,13 +491,25 @@ function addSticker(x, y) {
 }
 
 function pickSticker(x, y) {
+  // ★ 회전 반영 히트박스
+  const px = x * canvas.width / 100;
+  const py = y * canvas.height / 100;
+
   return [...state.stickers].reverse().find(sticker => {
-    const width = sticker.size / canvas.width * 100;
-    const height = sticker.size / canvas.height * 100;
+    const cx = (Number(sticker.x) || 0) * canvas.width / 100;
+    const cy = (Number(sticker.y) || 0) * canvas.height / 100;
+    const half = (Number(sticker.size) || 120) / 2;
+
+    // 클릭 좌표를 스티커 회전의 역방향으로 회전
+    const rad = -(Number(sticker.rotation) || 0) * Math.PI / 180;
+    const dx = px - cx;
+    const dy = py - cy;
+    const localX = dx * Math.cos(rad) - dy * Math.sin(rad);
+    const localY = dx * Math.sin(rad) + dy * Math.cos(rad);
 
     return (
-      Math.abs(sticker.x - x) <= width / 2 &&
-      Math.abs(sticker.y - y) <= height / 2
+      Math.abs(localX) <= half &&
+      Math.abs(localY) <= half
     );
   });
 }
@@ -459,16 +518,16 @@ function pickSticker(x, y) {
 // 9. 스티커 설정 이벤트
 // ======================================
 
-$("stickerSize").addEventListener("change", e => {
+// ★ 스티커 크기: bindUndoStart + input으로 실시간 반영 + 1회 기록
+bindUndoStart($("stickerSize"), () => !!state.selectedStickerId);
+$("stickerSize").addEventListener("input", e => {
   const sticker = state.stickers.find(
     s => s.id === state.selectedStickerId
   );
 
   if (!sticker) return;
 
-  remember();
   sticker.size = Number(e.target.value);
-
   render();
 });
 
@@ -567,18 +626,36 @@ $("textInput").addEventListener("input", e => {
 
   text.text = e.target.value.slice(0, 300);
 
+  // ★ 내용이 길어져 캔버스를 넘으면 자동 축소
+  const { fontSize, layout } = fitTextToCanvas(text);
+  text.fontSize = fontSize;
+  text.y = (layout.centerY / canvas.height) * 100;
+
+  // UI 슬라이더 동기화
+  $("fontSize").value = String(fontSize);
+  $("fontSizeValue").textContent = String(fontSize);
+
   render();
 });
 
 // 글자 크기 변경
 $("fontSize").addEventListener("input", e => {
-  $("fontSizeValue").textContent = e.target.value;
-
   const text = selectedText();
 
-  if (!text) return;
+  if (!text) {
+    $("fontSizeValue").textContent = e.target.value;
+    return;
+  }
 
   text.fontSize = Number(e.target.value);
+
+  // ★ 사용자가 크게 올려도 캔버스 넘으면 자동 축소
+  const { fontSize, layout } = fitTextToCanvas(text);
+  text.fontSize = fontSize;
+  text.y = (layout.centerY / canvas.height) * 100;
+
+  $("fontSize").value = String(fontSize);
+  $("fontSizeValue").textContent = String(fontSize);
 
   render();
 });
@@ -590,7 +667,6 @@ $("colorInput").addEventListener("input", e => {
   if (!text) return;
 
   text.color = e.target.value;
-
   render();
 });
 
@@ -624,17 +700,23 @@ $("fontBold").addEventListener("change", e => {
 // 11. 이미지 설정
 // ======================================
 
+// ★ 배경색: 색상 피커 드래그 중 1회만 기록
+bindUndoStart($("bgColor"), () => true);
 $("bgColor").addEventListener("input", e => {
   state.background = e.target.value;
   render();
 });
 
+// ★ 이미지 크기: 슬라이더 잡을 때 1회 기록
+bindUndoStart($("imageScale"), () => !!state.image);
 $("imageScale").addEventListener("input", e => {
   state.imageScale = Number(e.target.value) / 100;
   render();
 });
 
+// ★ 프레임: select change 1회 기록
 $("frameType").addEventListener("change", e => {
+  remember();
   state.frameType = e.target.value;
   render();
 });
@@ -657,7 +739,8 @@ fileInput?.addEventListener("change", async e => {
   if (!file) return;
 
   try {
-    await handleFile(file);
+    // ★ 업로드 성공 직전 remember() 호출 (변경 전 상태 저장)
+    await handleFile(file, () => remember());
   } catch (error) {
     console.error("이미지 불러오기 실패:", error);
     alert("이미지를 불러오지 못했습니다.");
@@ -691,8 +774,15 @@ $("customStickerInput")?.addEventListener("change", async e => {
 // ======================================
 
 $("aspectRatio").addEventListener("change", e => {
+  // ★ Undo 기록
+  remember();
+
   state.aspectRatio = e.target.value;
   updateCanvasSize();
+
+  // ★ 화면비 변경 시 모든 텍스트 자동 재배치/축소
+  reflowAllTexts({ shrink: true });
+  render();
 });
 
 $("zoomInBtn").addEventListener("click", () => {
@@ -746,6 +836,7 @@ canvas.addEventListener("pointerdown", event => {
     const text = pickText(point.x, point.y);
 
     if (text) {
+      // ★ 이동 전 상태 기록 (선택만 해도 무해)
       remember();
 
       state.selectedTextId = text.id;
@@ -755,10 +846,12 @@ canvas.addEventListener("pointerdown", event => {
         type: "text",
         target: text,
         offsetX: point.x - text.x,
-        offsetY: point.y - text.y
+        offsetY: point.y - text.y,
+        moved: false
       };
 
       canvas.setPointerCapture(event.pointerId);
+      render();
     } else {
       addText($("textInput").value, point.x, point.y);
     }
@@ -815,8 +908,30 @@ canvas.addEventListener("pointermove", event => {
   const point = getCoords(event);
 
   if (drag.type === "text") {
-    drag.target.x = point.x - drag.offsetX;
-    drag.target.y = point.y - drag.offsetY;
+    drag.moved = true;
+
+    let nx = point.x - drag.offsetX;
+    let ny = point.y - drag.offsetY;
+
+    // ★ 드래그 중에도 캔버스 세로 영역 안으로 clamp
+    const layout = measureTextLayout({
+      ...drag.target,
+      x: nx,
+      y: ny
+    });
+
+    const marginPct =
+      (AUTO_LAYOUT.CANVAS_MARGIN / canvas.height) * 100;
+    const halfHPct =
+      (layout.bounds.height / canvas.height) * 50;
+
+    ny = Math.max(
+      marginPct + halfHPct,
+      Math.min(100 - marginPct - halfHPct, ny)
+    );
+
+    drag.target.x = nx;
+    drag.target.y = ny;
   } else if (drag.type === "draw") {
     drag.target.points.push(point);
   } else if (drag.type === "sticker") {
@@ -991,12 +1106,14 @@ slotFileInput?.addEventListener("change", e => {
   const file = e.target.files?.[0];
 
   if (!file) return;
-  remember();
 
   const url = URL.createObjectURL(file);
   const img = new Image();
 
   img.onload = () => {
+    // ★ 이미지 로딩 성공 시점에 기록 (실패 시 Undo 누수 방지)
+    remember();
+
     state.splitImages[currentSlotIndex] = img;
 
     render();
@@ -1015,6 +1132,18 @@ slotFileInput?.addEventListener("change", e => {
 
   img.src = url;
   e.target.value = "";
+});
+
+// ======================================
+// 17-1. template.js 이벤트 수신
+// ======================================
+
+document.addEventListener("splitLayoutChanged", () => {
+  syncSplitLayoutUI();
+});
+
+document.addEventListener("requestRender", () => {
+  render();
 });
 
 // ======================================

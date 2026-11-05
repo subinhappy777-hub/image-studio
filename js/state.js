@@ -37,6 +37,18 @@ export const LIMITS = {
 };
 
 // ======================================
+// 2-1. 자동 배치 설정 (2차 작업)
+// ======================================
+
+export const AUTO_LAYOUT = {
+  CANVAS_MARGIN: 24,        // 캔버스 가장자리 여백(px)
+  MIN_FONT_SIZE: 12,        // 자동 축소 하한
+  MAX_SHRINK_STEPS: 24,     // 최대 축소 시도 횟수
+  LINE_HEIGHT_RATIO: 1.25,  // 줄 간격 비율
+  GAP: 8                    // 텍스트 간 최소 간격(px)
+};
+
+// ======================================
 // 3. 캔버스
 // ======================================
 
@@ -222,8 +234,20 @@ function wrapText(text, maxWidth) {
  *
  * drawTexts()와 main.js의 pickText()가
  * 동일한 계산 결과를 사용하도록 만든 함수입니다.
+ *
+ * maxWidth를 지정하지 않으면 캔버스 여백을 고려한
+ * 안전 폭을 자동으로 사용합니다. (2차 작업)
  */
-export function measureTextLayout(textItem, maxWidth = canvas.width - 32) {
+export function measureTextLayout(textItem, maxWidth = null) {
+  // ★ 캔버스 여백을 고려한 안전 폭
+  const safeMaxWidth =
+    maxWidth !== null
+      ? maxWidth
+      : Math.max(
+          40,
+          canvas.width - AUTO_LAYOUT.CANVAS_MARGIN * 2
+        );
+
   const size = Math.max(
     12,
     Math.min(120, Number(textItem.fontSize) || 44)
@@ -238,8 +262,8 @@ export function measureTextLayout(textItem, maxWidth = canvas.width - 32) {
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
 
-  const lines = wrapText(textItem.text ?? "", maxWidth);
-  const lineHeight = size * 1.25;
+  const lines = wrapText(textItem.text ?? "", safeMaxWidth);
+  const lineHeight = size * AUTO_LAYOUT.LINE_HEIGHT_RATIO;
 
   const centerX = Number(textItem.x) * canvas.width / 100;
   const centerY = Number(textItem.y) * canvas.height / 100;
@@ -265,11 +289,9 @@ export function measureTextLayout(textItem, maxWidth = canvas.width - 32) {
     const descent =
       Number(metrics.actualBoundingBoxDescent) || size * 0.2;
 
-    const left =
-      Number(metrics.actualBoundingBoxLeft) || lineWidth / 2;
-
-    const right =
-      Number(metrics.actualBoundingBoxRight) || lineWidth / 2;
+    // ★ 중앙 정렬이므로 width 기반 대칭 계산 (브라우저 호환성)
+    const left = lineWidth / 2;
+    const right = lineWidth / 2;
 
     const x = centerX;
     const y = startY + index * lineHeight;
@@ -327,6 +349,219 @@ export function measureTextLayout(textItem, maxWidth = canvas.width - 32) {
       height: maxY - minY
     }
   };
+}
+
+// ======================================
+// 7-1. 자동 배치 / 자동 축소 (2차 작업)
+// ======================================
+
+/**
+ * 텍스트가 캔버스 세로/가로 영역을 벗어나면
+ * 글자 크기를 자동으로 줄여 영역 안에 맞춥니다.
+ *
+ * 반환: { fontSize, layout } — 축소된 크기와 최종 레이아웃
+ */
+export function fitTextToCanvas(textItem) {
+  const canvasW = canvas.width;
+  const canvasH = canvas.height;
+  const margin = AUTO_LAYOUT.CANVAS_MARGIN;
+
+  const maxWidth = Math.max(40, canvasW - margin * 2);
+  const maxHeight = Math.max(40, canvasH - margin * 2);
+
+  const originalSize = Math.max(
+    12,
+    Math.min(120, Number(textItem.fontSize) || 44)
+  );
+
+  let fontSize = originalSize;
+  let layout = measureTextLayout(
+    { ...textItem, fontSize },
+    maxWidth
+  );
+
+  // ★ 세로/가로 영역을 모두 만족할 때까지 축소
+  let step = 0;
+  while (
+    step < AUTO_LAYOUT.MAX_SHRINK_STEPS &&
+    fontSize > AUTO_LAYOUT.MIN_FONT_SIZE &&
+    (layout.bounds.height > maxHeight ||
+      layout.bounds.width > maxWidth)
+  ) {
+    fontSize = Math.max(
+      AUTO_LAYOUT.MIN_FONT_SIZE,
+      Math.floor(fontSize * 0.92)
+    );
+
+    layout = measureTextLayout(
+      { ...textItem, fontSize },
+      maxWidth
+    );
+
+    step++;
+  }
+
+  // ★ 여전히 넘치면 y 위치를 캔버스 안으로 clamp
+  if (
+    layout.bounds.top < margin ||
+    layout.bounds.bottom > canvasH - margin
+  ) {
+    const clampedY = Math.max(
+      margin + layout.bounds.height / 2,
+      Math.min(
+        canvasH - margin - layout.bounds.height / 2,
+        layout.centerY
+      )
+    );
+
+    layout = measureTextLayout(
+      {
+        ...textItem,
+        fontSize,
+        y: (clampedY / canvasH) * 100
+      },
+      maxWidth
+    );
+  }
+
+  return { fontSize, layout };
+}
+
+/**
+ * 새 텍스트를 캔버스에 겹치지 않게 배치할 위치를 찾습니다.
+ * 공간이 부족하면 글자 크기를 자동으로 줄입니다.
+ *
+ * 반환: { x, y, fontSize } — 퍼센트 좌표와 최종 글자 크기
+ */
+export function findFreeTextPosition(textItem) {
+  const canvasW = canvas.width;
+  const canvasH = canvas.height;
+  const margin = AUTO_LAYOUT.CANVAS_MARGIN;
+  const gap = AUTO_LAYOUT.GAP;
+
+  // 기존 텍스트들의 바운즈 수집
+  const existingBounds = state.texts
+    .filter(t => t.id !== textItem.id)
+    .map(t => measureTextLayout(t).bounds);
+
+  const originalSize = Math.max(
+    12,
+    Math.min(120, Number(textItem.fontSize) || 44)
+  );
+
+  let fontSize = originalSize;
+
+  // ★ 공간이 부족하면 크기를 줄여가며 재시도
+  for (
+    let step = 0;
+    step < AUTO_LAYOUT.MAX_SHRINK_STEPS &&
+    fontSize >= AUTO_LAYOUT.MIN_FONT_SIZE;
+    step++
+  ) {
+    const layout = measureTextLayout(
+      { ...textItem, fontSize, x: 50, y: 50 },
+      canvasW - margin * 2
+    );
+
+    const w = layout.bounds.width;
+    const h = layout.bounds.height;
+
+    // 위에서 아래로, 왼쪽에서 오른쪽으로 스캔
+    const startY = margin + h / 2;
+
+    for (
+      let cy = startY;
+      cy <= canvasH - margin - h / 2 + 0.5;
+      cy += h + gap
+    ) {
+      for (
+        let cx = margin + w / 2;
+        cx <= canvasW - margin - w / 2 + 0.5;
+        cx += w + gap
+      ) {
+        const candidate = {
+          left: cx - w / 2,
+          right: cx + w / 2,
+          top: cy - h / 2,
+          bottom: cy + h / 2
+        };
+
+        const overlaps = existingBounds.some(b =>
+          !(
+            candidate.right + gap < b.left ||
+            candidate.left - gap > b.right ||
+            candidate.bottom + gap < b.top ||
+            candidate.top - gap > b.bottom
+          )
+        );
+
+        if (!overlaps) {
+          return {
+            x: (cx / canvasW) * 100,
+            y: (cy / canvasH) * 100,
+            fontSize
+          };
+        }
+      }
+    }
+
+    // 공간을 못 찾으면 글자 크기 축소 후 재시도
+    fontSize = Math.max(
+      AUTO_LAYOUT.MIN_FONT_SIZE,
+      Math.floor(fontSize * 0.9)
+    );
+  }
+
+  // ★ 최후: 중앙에 배치 (겹침 허용)
+  return {
+    x: 50,
+    y: 50,
+    fontSize: AUTO_LAYOUT.MIN_FONT_SIZE
+  };
+}
+
+/**
+ * 화면비 변경, 템플릿 불러오기 등으로 캔버스 크기가 바뀌었을 때
+ * 모든 텍스트를 캔버스 안으로 재배치하고 필요 시 축소합니다.
+ *
+ * 옵션:
+ * - shrink: 글자 크기 자동 축소 허용 (기본 true)
+ * - reposition: 겹침 방지 재배치 허용 (기본 false)
+ */
+export function reflowAllTexts({
+  shrink = true,
+  reposition = false
+} = {}) {
+  if (!state.texts.length) return;
+
+  const canvasH = canvas.height;
+  const margin = AUTO_LAYOUT.CANVAS_MARGIN;
+
+  for (const text of state.texts) {
+    if (shrink) {
+      const { fontSize } = fitTextToCanvas(text);
+      text.fontSize = fontSize;
+    }
+
+    // 캔버스 밖으로 나간 텍스트를 안으로 clamp
+    const layout = measureTextLayout(text);
+
+    if (layout.bounds.top < margin) {
+      const dy =
+        (margin - layout.bounds.top) / canvasH * 100;
+      text.y = Math.min(100, text.y + dy);
+    } else if (layout.bounds.bottom > canvasH - margin) {
+      const dy =
+        (layout.bounds.bottom - (canvasH - margin)) /
+        canvasH * 100;
+      text.y = Math.max(0, text.y - dy);
+    }
+  }
+
+  if (reposition) {
+    // 겹침 제거는 선택적 (사용자가 수동 배치한 걸 덮어쓸 수 있음)
+    // 필요 시 구현
+  }
 }
 
 // ======================================
@@ -612,15 +847,12 @@ function drawTexts() {
 
     // 텍스트의 중심 위치
     const centerX = layout.centerX;
-    const centerY = layout.centerY;
 
-    // 여러 줄의 텍스트를 중앙 정렬
-    const startY =
-      centerY -
-      ((layout.lines.length - 1) * layout.lineHeight) / 2;
-
+    // ★ lineMetrics의 y를 그대로 사용 (측정=렌더링 일치)
     layout.lines.forEach((line, index) => {
-      const y = startY + index * layout.lineHeight;
+      const y = layout.lineMetrics[index]
+        ? layout.lineMetrics[index].y
+        : layout.centerY;
 
       ctx.strokeText(line, centerX, y);
       ctx.fillText(line, centerX, y);

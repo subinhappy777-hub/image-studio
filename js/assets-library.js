@@ -31,14 +31,13 @@ function store(key, items) {
 }
 
 // ======================================
-// 2. 🟢 커스텀 스티커 기능
+// 2. 커스텀 스티커 기능
 // ======================================
 
 export function getCustomStickers() {
   return read(STICKER_KEY);
 }
 
-// 🟢 기존 코드에 있던 삭제 함수 (이미 완벽하게 구현되어 있습니다)
 export function deleteCustomSticker(id) {
   return store(
     STICKER_KEY,
@@ -71,7 +70,7 @@ export async function addCustomSticker(file) {
       throw new Error("이미지 크기가 너무 큽니다.");
     }
 
-    // 🟢 스티커용 이미지 리사이징 (최대 600px)
+    // 스티커용 이미지 리사이징 (최대 600px)
     const c = document.createElement("canvas");
     const scale = Math.min(1, 600 / Math.max(img.naturalWidth, img.naturalHeight));
     c.width = Math.max(1, Math.round(img.naturalWidth * scale));
@@ -88,10 +87,10 @@ export async function addCustomSticker(file) {
 
     const item = {
       id: crypto.randomUUID(),
-      kind: "image", // 🟢 커스텀 이미지 타입 명시
+      kind: "image",
       name: file.name.slice(0, 60),
       src: src,
-      category: "custom" // 🟢 카테고리 분류 (custom)
+      category: "custom"
     };
 
     if (!store(STICKER_KEY, [...items, item])) {
@@ -105,32 +104,39 @@ export async function addCustomSticker(file) {
 }
 
 // ======================================
-// 3. 🟢 말풍선 스티커 생성 (유행어 추가)
+// 3. 말풍선 스티커 생성 (유행어 추가)
 // ======================================
 
 export function createSpeechBubbleSticker(text, color = "#ffffff") {
-  // 캔버스를 이용해 말풍선 이미지를 생성하여 커스텀 스티커로 저장
-  const c = document.createElement("canvas");
-  const ctx = c.getContext("2d");
   const fontSize = 32;
   const padding = 20;
 
-  ctx.font = `bold ${fontSize}px sans-serif`;
-  const textWidth = ctx.measureText(text).width;
-  
-  c.width = textWidth + padding * 2;
+  // ★ 1) 측정용 임시 캔버스 (실제 캔버스 크기 설정 전에 측정)
+  const measureCanvas = document.createElement("canvas");
+  const measureCtx = measureCanvas.getContext("2d");
+  measureCtx.font = `bold ${fontSize}px sans-serif`;
+  const textWidth = measureCtx.measureText(text).width;
+
+  // ★ 2) 실제 캔버스 크기 먼저 설정
+  const c = document.createElement("canvas");
+  c.width = Math.ceil(textWidth + padding * 2);
   c.height = fontSize + padding * 2;
+
+  // ★ 3) 크기 설정 후 컨텍스트 가져와 폰트 다시 지정
+  //    (canvas.width/height 변경 시 컨텍스트 상태가 초기화되므로)
+  const ctx = c.getContext("2d");
+  ctx.font = `bold ${fontSize}px sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
 
   // 말풍선 배경 그리기
   ctx.fillStyle = color;
   ctx.beginPath();
-  ctx.roundRect(0, 0, c.width, c.height, 20); // 둥근 사각형
+  ctx.roundRect(0, 0, c.width, c.height, 20);
   ctx.fill();
 
   // 텍스트 그리기
   ctx.fillStyle = "#000000";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
   ctx.fillText(text, c.width / 2, c.height / 2);
 
   const src = c.toDataURL("image/png");
@@ -145,7 +151,7 @@ export function createSpeechBubbleSticker(text, color = "#ffffff") {
     kind: "image",
     name: text.slice(0, 20),
     src: src,
-    category: "speech" // 🟢 말풍선 타입 명시
+    category: "speech"
   };
 
   if (!store(STICKER_KEY, [...items, item])) {
@@ -156,7 +162,7 @@ export function createSpeechBubbleSticker(text, color = "#ffffff") {
 }
 
 // ======================================
-// 4. 🟢 커스텀 폰트 기능
+// 4. 커스텀 폰트 기능
 // ======================================
 
 export function getCustomFonts() {
@@ -177,7 +183,7 @@ function appendFontOption(item) {
   }
 
   const option = document.createElement("option");
-  option.value = item.id; // 🟢 폰트 ID를 value로 사용
+  option.value = item.id;
   option.textContent = `📁 ${item.name}`;
   select.appendChild(option);
 }

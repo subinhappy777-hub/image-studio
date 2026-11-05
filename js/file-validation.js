@@ -2,7 +2,8 @@ import {
   state,
   LIMITS,
   render,
-  setStatus
+  setStatus,
+  reflowAllTexts
 } from "./state.js";
 
 // ======================================
@@ -36,7 +37,15 @@ function detectFileType(bytes) {
 // 2. 이미지 업로드
 // ======================================
 
-export async function handleFile(file) {
+/**
+ * 이미지 파일을 검증하고 state.image에 적용합니다.
+ *
+ * @param {File} file - 업로드된 파일
+ * @param {Function|null} onBeforeApply - state 변경 직전에 호출될 콜백
+ *                                        (main.js에서 remember()를 넘김)
+ * @returns {Promise<boolean>} 성공 여부
+ */
+export async function handleFile(file, onBeforeApply = null) {
   if (!file) return false;
 
   // ======================================
@@ -121,10 +130,16 @@ export async function handleFile(file) {
     // 2-6. 검증된 이미지 적용
     // ======================================
 
+    // ★ state 변경 직전에 Undo 기록 (변경 전 상태 저장)
+    //   - 검증이 모두 통과한 뒤에만 호출되므로,
+    //     로딩 실패/용량 초과 등으로는 Undo 기록이 쌓이지 않음.
+    if (typeof onBeforeApply === "function") {
+      onBeforeApply();
+    }
+
     state.image = image;
 
     // 이미지 위치 및 크기 초기화
-    // 🟢 신규: 이미지 이동/확대/축소가 원활하도록 초기 상태를 완벽하게 재설정합니다.
     state.imageScale = 1;
     state.imageX = 50;
     state.imageY = 50;
@@ -132,9 +147,6 @@ export async function handleFile(file) {
     // ======================================
     // ★ 사진 프레임 유지
     // ======================================
-
-    // 기존에 선택한 프레임을 유지합니다.
-    // frameType이 없는 경우에만 기본값을 적용합니다.
 
     if (!state.frameType) {
       state.frameType = "none";
@@ -151,23 +163,23 @@ export async function handleFile(file) {
     // 2-7. HTML 설정값 초기화
     // ======================================
 
-    // 🟢 신규: 이미지 크기 슬라이더를 100%로 동기화
     const imageScaleInput = document.getElementById("imageScale");
     if (imageScaleInput) {
       imageScaleInput.value = "100";
     }
 
-    // 🟢 신규: 업로드 안내창 숨기기
     const uploadPlaceholder = document.getElementById("uploadPlaceholder");
     if (uploadPlaceholder) {
       uploadPlaceholder.style.display = "none";
     }
 
     // ======================================
-    // 2-8. 캔버스 다시 그리기
+    // 2-8. 텍스트 재배치 + 캔버스 다시 그리기
     // ======================================
 
-    // render()에서 이미지와 프레임을 함께 그립니다.
+    // ★ 이미지 적용 후 텍스트가 캔버스를 벗어나지 않도록 재배치
+    reflowAllTexts({ shrink: true });
+
     render();
 
     // ======================================

@@ -74,14 +74,15 @@
         <div class="canvas-stage">
           <div id="canvasContainer">
             <canvas id="canvas" aria-label="이미지 편집 화면"></canvas>
-            <input type="text" id="inlineTextInput" class="inline-text-input" placeholder="문구 입력 후 Enter">
+
+            <!-- 이미지 불러오기 안내 -->
             <button id="uploadPlaceholder" type="button">
               <strong>＋</strong>
               <span>이미지 불러오기</span>
               <small>PNG / JPEG</small>
             </button>
-            
-            <!-- 4분할 모드일 때 캔버스 위에 겹쳐질 버튼들 -->
+
+            <!-- 사진 분할 모드일 때 캔버스 위에 겹쳐질 버튼들 -->
             <div id="splitOverlay" class="split-overlay">
               <button class="split-zone-btn" data-slot="0" type="button">＋<br>좌측 상단</button>
               <button class="split-zone-btn" data-slot="1" type="button">＋<br>우측 상단</button>
@@ -128,8 +129,6 @@
           </p>
 
           <button id="addTextBtn" class="secondary" type="button">문구 추가</button>
-
-          
 
           <!-- 텍스트 볼드 기능 -->
           <label style="display:flex; align-items:center; gap:8px; margin-top:8px;">
@@ -203,8 +202,8 @@
 
           <!-- 스티커 삭제 -->
           <button id="deleteStickerBtn" class="secondary" type="button" style="margin-top:10px;">선택한 스티커 삭제</button>
-          
-          <!-- 🟢 신규 추가: 모든 스티커 삭제 -->
+
+          <!-- 모든 스티커 삭제 -->
           <button id="clearAllStickersBtn" class="secondary" type="button" style="margin-top:5px; background:#ffe4e6; color:#be123c;">모든 스티커 삭제</button>
 
         </div>
@@ -221,27 +220,13 @@
             <button id="layout4Btn" class="secondary" type="button" style="flex:1;">4등분</button>
           </div>
 
-          <div id="splitUploadArea" style="display:none; flex-direction:column; gap:8px; margin-bottom:16px;">
-            <div id="split2Area" style="display:none; gap:8px;">
-              <button class="secondary split-upload-btn" data-slot="0" type="button" style="flex:1;">＋ 왼쪽 사진</button>
-              <button class="secondary split-upload-btn" data-slot="1" type="button" style="flex:1;">＋ 오른쪽 사진</button>
-            </div>
-            <div id="split4Area" style="display:none; flex-wrap:wrap; gap:8px;">
-              <button class="secondary split-upload-btn" data-slot="0" type="button" style="width:48%;">＋ 좌측 상단</button>
-              <button class="secondary split-upload-btn" data-slot="1" type="button" style="width:48%;">＋ 우측 상단</button>
-              <button class="secondary split-upload-btn" data-slot="2" type="button" style="width:48%;">＋ 좌측 하단</button>
-              <button class="secondary split-upload-btn" data-slot="3" type="button" style="width:48%;">＋ 우측 하단</button>
-            </div>
-            <input type="file" id="slotFileInput" accept="image/png, image/jpeg" hidden>
-          </div>
-
           <hr style="margin: 12px 0; border: 0; border-top: 1px solid #ddd;">
 
           <!-- 배경 색상 -->
           <label for="bgColor">배경 색상</label>
           <input id="bgColor" type="color" value="#222b42">
 
-          <!-- 🟢 신규 추가: 이미지 이동 및 확대/축소 안내 -->
+          <!-- 이미지 이동 및 확대/축소 안내 -->
           <p class="hint" style="margin-top:10px; background:#f0f9ff; padding:10px; border-radius:8px;">
             <strong>[이미지 도구]</strong>를 선택한 뒤 캔버스 위의 사진을 드래그하면 이동합니다.<br>
             아래 슬라이더로 사진의 크기를 조절할 수 있습니다.
@@ -291,7 +276,7 @@
         <small>템플릿 관리</small>
       </button>
 
-      <!-- 🟢 신규 추가: 다중 포맷 다운로드 -->
+      <!-- 다중 포맷 다운로드 -->
       <div style="display:flex; flex-direction:column; gap:4px;">
         <button id="btnOutput" type="button" style="background:#159b88; flex:1;">
           OUTPUT (PNG)
@@ -314,6 +299,8 @@
     <input id="fileInput" type="file" accept="image/png,image/jpeg,.png,.jpg,.jpeg" hidden>
     <!-- JSON 불러오기를 위한 숨겨진 파일 입력 -->
     <input id="jsonFileInput" type="file" accept=".json" hidden>
+    <!-- 사진 분할 슬롯 파일 입력 (main.js에서 사용) -->
+    <input type="file" id="slotFileInput" accept="image/png, image/jpeg" hidden>
 
   </main>
 
