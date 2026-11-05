@@ -7,7 +7,6 @@ export const state = {
   aspectRatio: "1:1",
   zoomLevel: 1,
 
-  // 사진 프레임
   frameType: "none",
 
   texts: [],
@@ -23,7 +22,6 @@ export const state = {
 
   background: "#222b42",
 
-  // 🟢 추가된 상태: 사진 분할 레이아웃 (1: 기본, 2: 2등분, 4: 4등분)
   splitLayout: 1,
   splitImages: [null, null, null, null]
 };
@@ -66,7 +64,7 @@ export const CANVAS_SIZES = {
 };
 
 // ======================================
-// 6. 캔버스 크기 변경 (줌 레벨 반영)
+// 6. 캔버스 크기 변경
 // ======================================
 
 export function updateCanvasSize() {
@@ -79,10 +77,14 @@ export function updateCanvasSize() {
   const stage = document.querySelector(".canvas-stage");
 
   const availableWidth = Math.max(120, stage.clientWidth - 32);
-  const availableHeight = Math.max(160, Math.min(510, window.innerHeight * 0.58));
+  const availableHeight = Math.max(
+    160,
+    Math.min(510, window.innerHeight * 0.58)
+  );
 
-  // 🟢 기본 크기 계산 후 state.zoomLevel을 곱하여 화면 크기 결정
-  const scale = Math.min(availableWidth / width, availableHeight / height) * state.zoomLevel;
+  const scale =
+    Math.min(availableWidth / width, availableHeight / height) *
+    state.zoomLevel;
 
   const displayWidth = Math.max(1, Math.round(width * scale));
   const displayHeight = Math.max(1, Math.round(height * scale));
@@ -101,24 +103,230 @@ export function updateCanvasSize() {
 }
 
 // ======================================
-// 7. 문구 줄바꿈
+// 7. 문구 줄바꿈 및 텍스트 측정
 // ======================================
 
+/**
+ * 문자열을 글자 단위로 분리합니다.
+ * 한글의 결합 문자 등이 가능한 한 분리되지 않도록
+ * Intl.Segmenter를 우선 사용합니다.
+ */
+function splitGraphemes(value) {
+  const text = String(value);
+
+  if (typeof Intl !== "undefined" && Intl.Segmenter) {
+    const segmenter = new Intl.Segmenter("ko", {
+      granularity: "grapheme"
+    });
+
+    return Array.from(
+      segmenter.segment(text),
+      item => item.segment
+    );
+  }
+
+  return Array.from(text);
+}
+
+/**
+ * 단어 단위로 줄바꿈합니다.
+ *
+ * 처리 순서:
+ * 1. 사용자가 입력한 줄바꿈을 먼저 분리합니다.
+ * 2. 공백과 단어를 각각 토큰으로 구분합니다.
+ * 3. 단어가 한 줄에 들어가면 그대로 배치합니다.
+ * 4. 단어가 너무 길면 글자 단위로 나눕니다.
+ */
 function wrapText(text, maxWidth) {
   const lines = [];
-  String(text).split("\n").forEach(part => {
-    let line = "";
-    for (const char of Array.from(part)) {
-      if (line && ctx.measureText(line + char).width > maxWidth) {
-        lines.push(line);
-        line = char;
+  const safeWidth = Math.max(1, Number(maxWidth) || 1);
+
+  const explicitLines = String(text ?? "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .split("\n");
+
+  function pushLongToken(token) {
+    let current = "";
+
+    for (const char of splitGraphemes(token)) {
+      const candidate = current + char;
+
+      if (
+        current &&
+        ctx.measureText(candidate).width > safeWidth
+      ) {
+        lines.push(current);
+        current = char;
       } else {
-        line += char;
+        current = candidate;
       }
     }
+
+    return current;
+  }
+
+  for (const originalLine of explicitLines) {
+    // 빈 줄도 사용자가 입력한 줄바꿈이므로 유지
+    if (originalLine === "") {
+      lines.push("");
+      continue;
+    }
+
+    // 공백 토큰과 일반 단어 토큰을 분리
+    const tokens = originalLine.match(/\s+|[^\s]+/gu) || [];
+
+    let line = "";
+
+    for (const token of tokens) {
+      const candidate = line + token;
+
+      // 현재 줄에 토큰을 추가해도 너비가 허용 범위 이내인 경우
+      if (ctx.measureText(candidate).width <= safeWidth) {
+        line = candidate;
+        continue;
+      }
+
+      // 공백 토큰인 경우
+      if (/^\s+$/u.test(token)) {
+        if (line) {
+          lines.push(line.trimEnd());
+          line = "";
+        }
+        continue;
+      }
+
+      // 기존 줄에 내용이 있다면 먼저 확정
+      if (line.trim() !== "") {
+        lines.push(line.trimEnd());
+        line = "";
+      }
+
+      // 단어 자체가 한 줄보다 긴 경우 글자 단위로 분할
+      if (ctx.measureText(token).width > safeWidth) {
+        line = pushLongToken(token);
+      } else {
+        line = token;
+      }
+    }
+
     lines.push(line);
+  }
+
+  // 빈 배열 방지
+  return lines.length ? lines : [""];
+}
+
+/**
+ * 텍스트의 실제 렌더링 크기와 위치를 계산합니다.
+ *
+ * drawTexts()와 main.js의 pickText()가
+ * 동일한 계산 결과를 사용하도록 만든 함수입니다.
+ */
+export function measureTextLayout(textItem, maxWidth = canvas.width - 32) {
+  const size = Math.max(
+    12,
+    Math.min(120, Number(textItem.fontSize) || 44)
+  );
+
+  const fontFamily = textItem.fontFamily || "sans-serif";
+  const fontWeight = textItem.bold ? "bold" : "normal";
+
+  ctx.save();
+
+  ctx.font = `${fontWeight} ${size}px ${fontFamily}`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  const lines = wrapText(textItem.text ?? "", maxWidth);
+  const lineHeight = size * 1.25;
+
+  const centerX = Number(textItem.x) * canvas.width / 100;
+  const centerY = Number(textItem.y) * canvas.height / 100;
+
+  const startY =
+    centerY - ((lines.length - 1) * lineHeight) / 2;
+
+  let maxLineWidth = 0;
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minY = Infinity;
+  let maxY = -Infinity;
+
+  const lineMetrics = lines.map((line, index) => {
+    const metrics = ctx.measureText(line);
+    const lineWidth = metrics.width;
+
+    maxLineWidth = Math.max(maxLineWidth, lineWidth);
+
+    const ascent =
+      Number(metrics.actualBoundingBoxAscent) || size * 0.8;
+
+    const descent =
+      Number(metrics.actualBoundingBoxDescent) || size * 0.2;
+
+    const left =
+      Number(metrics.actualBoundingBoxLeft) || lineWidth / 2;
+
+    const right =
+      Number(metrics.actualBoundingBoxRight) || lineWidth / 2;
+
+    const x = centerX;
+    const y = startY + index * lineHeight;
+
+    minX = Math.min(minX, x - left);
+    maxX = Math.max(maxX, x + right);
+    minY = Math.min(minY, y - ascent);
+    maxY = Math.max(maxY, y + descent);
+
+    return {
+      text: line,
+      x,
+      y,
+      width: lineWidth,
+      ascent,
+      descent
+    };
   });
-  return lines.slice(0, 80);
+
+  // 텍스트가 비어 있거나 글자 폭이 없는 경우를 위한 보정
+  if (!Number.isFinite(minX)) {
+    minX = centerX;
+    maxX = centerX;
+    minY = centerY - size / 2;
+    maxY = centerY + size / 2;
+  }
+
+  // 텍스트 외곽선과 선택 영역을 위한 여유 공간
+  const strokePadding = 3;
+
+  minX -= strokePadding;
+  maxX += strokePadding;
+  minY -= strokePadding;
+  maxY += strokePadding;
+
+  ctx.restore();
+
+  return {
+    lines,
+    lineMetrics,
+    lineHeight,
+    fontSize: size,
+    width: maxLineWidth,
+    height: maxY - minY,
+    centerX,
+    centerY,
+
+    // 실제 글자와 외곽선을 포함한 선택 영역
+    bounds: {
+      left: minX,
+      right: maxX,
+      top: minY,
+      bottom: maxY,
+      width: maxX - minX,
+      height: maxY - minY
+    }
+  };
 }
 
 // ======================================
@@ -131,18 +339,18 @@ function drawBackground() {
 }
 
 // ======================================
-// 9. 이미지 그리기 (단일 & 2/4등분 콜라주 완벽 지원)
+// 9. 이미지 그리기
 // ======================================
 
 function drawImage() {
   const width = canvas.width;
   const height = canvas.height;
 
-  // 🟢 1. 2등분 / 4등분 콜라주 레이아웃 렌더링
   if (state.splitLayout === 2 || state.splitLayout === 4) {
     const cols = 2;
     const rows = state.splitLayout === 2 ? 1 : 2;
     const gap = 10;
+
     const pieceW = (width - gap * (cols - 1)) / cols;
     const pieceH = (height - gap * (rows - 1)) / rows;
 
@@ -150,37 +358,50 @@ function drawImage() {
       for (let c = 0; c < cols; c++) {
         const index = r * cols + c;
         const img = state.splitImages[index];
+
         const dx = c * (pieceW + gap);
         const dy = r * (pieceH + gap);
 
-        if (img) {
-          // 이미지 비율 유지하며 칸에 꽉 차게(Cover) 그림
-          const imgRatio = img.naturalWidth / img.naturalHeight;
-          const boxRatio = pieceW / pieceH;
-          let sx, sy, sw, sh;
-          if (imgRatio > boxRatio) {
-            sh = img.naturalHeight;
-            sw = sh * boxRatio;
-            sx = (img.naturalWidth - sw) / 2;
-            sy = 0;
-          } else {
-            sw = img.naturalWidth;
-            sh = sw / boxRatio;
-            sx = 0;
-            sy = (img.naturalHeight - sh) / 2;
-          }
-          ctx.drawImage(img, sx, sy, sw, sh, dx, dy, pieceW, pieceH);
+        if (!img) continue;
+
+        const imgRatio = img.naturalWidth / img.naturalHeight;
+        const boxRatio = pieceW / pieceH;
+
+        let sx, sy, sw, sh;
+
+        if (imgRatio > boxRatio) {
+          sh = img.naturalHeight;
+          sw = sh * boxRatio;
+          sx = (img.naturalWidth - sw) / 2;
+          sy = 0;
+        } else {
+          sw = img.naturalWidth;
+          sh = sw / boxRatio;
+          sx = 0;
+          sy = (img.naturalHeight - sh) / 2;
         }
+
+        ctx.drawImage(
+          img,
+          sx, sy, sw, sh,
+          dx, dy, pieceW, pieceH
+        );
       }
     }
+
     return;
   }
 
-  // 🟢 2. 기본 단일 이미지 렌더링 (기존 로직)
   if (!state.image) return;
 
   const img = state.image;
-  const fit = Math.min(width / img.naturalWidth, height / img.naturalHeight) * state.imageScale;
+
+  const fit =
+    Math.min(
+      width / img.naturalWidth,
+      height / img.naturalHeight
+    ) * state.imageScale;
+
   const imageWidth = img.naturalWidth * fit;
   const imageHeight = img.naturalHeight * fit;
 
@@ -191,7 +412,7 @@ function drawImage() {
 }
 
 // ======================================
-// 10. 그림 (글리터, 네온 등) 렌더링
+// 10. 그림 렌더링
 // ======================================
 
 function glitterRandom(seed) {
@@ -219,69 +440,99 @@ function drawGlitterStroke(stroke) {
   points.forEach((point, index) => {
     const x = point.x * width / 100;
     const y = point.y * height / 100;
+
     if (index === 0) ctx.moveTo(x, y);
     else ctx.lineTo(x, y);
   });
 
   if (points.length === 1) {
     const p = points[0];
-    ctx.lineTo(p.x * width / 100 + 0.01, p.y * height / 100 + 0.01);
+    ctx.lineTo(
+      p.x * width / 100 + 0.01,
+      p.y * height / 100 + 0.01
+    );
   }
-  ctx.stroke();
 
-  // 반짝이 입자
+  ctx.stroke();
   ctx.shadowBlur = 0;
+
   const drawSparkle = (x, y, radius, seed) => {
     const angle = glitterRandom(seed + 1) * Math.PI * 2;
     const distance = glitterRandom(seed + 2) * size * 2;
+
     const sx = x + Math.cos(angle) * distance;
     const sy = y + Math.sin(angle) * distance;
 
-    ctx.fillStyle = glitterRandom(seed + 3) > 0.5 ? "#ffffff" : "#fff5b8";
+    ctx.fillStyle =
+      glitterRandom(seed + 3) > 0.5 ? "#ffffff" : "#fff5b8";
+
     ctx.beginPath();
     ctx.arc(sx, sy, radius, 0, Math.PI * 2);
     ctx.fill();
 
     if (glitterRandom(seed + 4) > 0.72) {
       const length = radius * 3;
+
       ctx.strokeStyle = "#ffffff";
       ctx.lineWidth = Math.max(1, radius * 0.45);
       ctx.beginPath();
-      ctx.moveTo(sx - length, sy); ctx.lineTo(sx + length, sy);
-      ctx.moveTo(sx, sy - length); ctx.lineTo(sx, sy + length);
+      ctx.moveTo(sx - length, sy);
+      ctx.lineTo(sx + length, sy);
+      ctx.moveTo(sx, sy - length);
+      ctx.lineTo(sx, sy + length);
       ctx.stroke();
     }
   };
 
   let previous = null;
   let travelled = 0;
+
   const spacing = Math.max(4, size * 0.7);
   let particleIndex = 0;
 
   for (const point of points) {
-    const current = { x: point.x * width / 100, y: point.y * height / 100 };
+    const current = {
+      x: point.x * width / 100,
+      y: point.y * height / 100
+    };
+
     if (!previous) {
       previous = current;
-      drawSparkle(current.x, current.y, Math.max(1.5, size * 0.18), particleIndex++);
+      drawSparkle(
+        current.x,
+        current.y,
+        Math.max(1.5, size * 0.18),
+        particleIndex++
+      );
       continue;
     }
+
     const dx = current.x - previous.x;
     const dy = current.y - previous.y;
     const length = Math.hypot(dx, dy);
+
     if (length === 0) continue;
+
     let distance = spacing - travelled;
+
     while (distance <= length) {
       const ratio = distance / length;
       const x = previous.x + dx * ratio;
       const y = previous.y + dy * ratio;
-      const radius = Math.max(1.5, size * 0.18) * (0.6 + glitterRandom(particleIndex + 10));
+
+      const radius =
+        Math.max(1.5, size * 0.18) *
+        (0.6 + glitterRandom(particleIndex + 10));
+
       drawSparkle(x, y, radius, particleIndex * 7 + 3);
       particleIndex++;
       distance += spacing;
     }
+
     travelled = (travelled + length) % spacing;
     previous = current;
   }
+
   ctx.restore();
 }
 
@@ -300,13 +551,17 @@ function drawStrokes() {
     stroke.points.forEach((point, index) => {
       const x = point.x * canvas.width / 100;
       const y = point.y * canvas.height / 100;
+
       if (index === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
     });
 
     if (stroke.points.length === 1) {
       const p = stroke.points[0];
-      ctx.lineTo(p.x * canvas.width / 100 + 0.01, p.y * canvas.height / 100 + 0.01);
+      ctx.lineTo(
+        p.x * canvas.width / 100 + 0.01,
+        p.y * canvas.height / 100 + 0.01
+      );
     }
 
     ctx.lineWidth = stroke.size;
@@ -314,7 +569,10 @@ function drawStrokes() {
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
-    if (stroke.type === "highlighter") ctx.globalAlpha = 0.4;
+    if (stroke.type === "highlighter") {
+      ctx.globalAlpha = 0.4;
+    }
+
     if (stroke.type === "neon") {
       ctx.shadowColor = stroke.color;
       ctx.shadowBlur = stroke.size * 2;
@@ -326,52 +584,57 @@ function drawStrokes() {
 }
 
 // ======================================
-// 11. ★ 텍스트 렌더링 (볼드 & 커스텀 폰트 추가)
+// 11. 텍스트 렌더링
+// 실제 측정된 텍스트 레이아웃 사용
 // ======================================
 
 function drawTexts() {
   for (const text of state.texts) {
     ctx.save();
 
-    const size = Math.max(12, Math.min(120, Number(text.fontSize) || 44));
+    // 텍스트 크기와 줄바꿈 정보를 한 번에 계산
+    const layout = measureTextLayout(text);
 
-    // 🟢 커스텀 폰트 적용 (HTML에 추가된 구글 폰트 포함)
     const fontFamily = text.fontFamily || "sans-serif";
-    
-    // 🟢 볼드(Bold) 여부에 따라 폰트 굵기 설정
     const fontWeight = text.bold ? "bold" : "normal";
-    
-    ctx.font = `${fontWeight} ${size}px ${fontFamily}`;
+
+    // 측정 함수와 동일한 글꼴 설정
+    ctx.font =
+      `${fontWeight} ${layout.fontSize}px ${fontFamily}`;
 
     ctx.fillStyle = text.color || "#ffffff";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
+
+    // 글자 외곽선
     ctx.strokeStyle = "#0008";
     ctx.lineWidth = 3;
 
-    const lines = wrapText(text.text, Math.max(50, canvas.width - 32));
-    const lineHeight = size * 1.25;
+    // 텍스트의 중심 위치
+    const centerX = layout.centerX;
+    const centerY = layout.centerY;
 
-    const startY = text.y * canvas.height / 100 - (lines.length - 1) * lineHeight / 2;
+    // 여러 줄의 텍스트를 중앙 정렬
+    const startY =
+      centerY -
+      ((layout.lines.length - 1) * layout.lineHeight) / 2;
 
-    lines.forEach((line, index) => {
-      const x = text.x * canvas.width / 100;
-      const y = startY + index * lineHeight;
-      ctx.strokeText(line, x, y);
-      ctx.fillText(line, x, y);
+    layout.lines.forEach((line, index) => {
+      const y = startY + index * layout.lineHeight;
+
+      ctx.strokeText(line, centerX, y);
+      ctx.fillText(line, centerX, y);
     });
 
     ctx.restore();
   }
 }
 
-
 // ======================================
-// 12. 스티커 렌더링 (이미지 로딩 캐시 적용)
+// 12. 스티커 렌더링
 // ======================================
 
 const stickerImageCache = new Map();
-
 
 function getStickerImage(src) {
   if (!src) return null;
@@ -396,12 +659,7 @@ function getStickerImage(src) {
   return img;
 }
 
-
-
 function drawStickers() {
-  console.log("drawStickers 실행됨");
-  console.log("캔버스 크기:", canvas.width, canvas.height);
-  console.log("스티커 데이터:", state.stickers);
   for (const sticker of state.stickers) {
     if (!sticker) continue;
 
@@ -418,8 +676,11 @@ function drawStickers() {
 
     ctx.rotate(rotation);
 
-    // 이미지형 스티커
-    if (sticker.kind === "image" || sticker.type === "custom" || sticker.type === "image") {
+    if (
+      sticker.kind === "image" ||
+      sticker.type === "custom" ||
+      sticker.type === "image"
+    ) {
       const img = getStickerImage(sticker.src);
 
       if (img && img.complete && img.naturalWidth > 0) {
@@ -439,10 +700,10 @@ function drawStickers() {
           height
         );
       }
-    }
-
-    // 말풍선 스티커
-    else if (sticker.kind === "speech" || sticker.type === "speech") {
+    } else if (
+      sticker.kind === "speech" ||
+      sticker.type === "speech"
+    ) {
       const message = sticker.text || sticker.emoji || "💬";
 
       ctx.font = `bold ${size * 0.2}px sans-serif`;
@@ -468,11 +729,10 @@ function drawStickers() {
 
       ctx.fillStyle = "#333333";
       ctx.fillText(message, 0, 0);
-    }
+    } else {
+      ctx.font =
+        `${size}px "Segoe UI Emoji", "Apple Color Emoji", sans-serif`;
 
-    // 기본 이모지 스티커
-    else {
-      ctx.font = `${size}px "Segoe UI Emoji", "Apple Color Emoji", sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(sticker.emoji || "⭐", 0, 0);
@@ -481,8 +741,6 @@ function drawStickers() {
     ctx.restore();
   }
 }
-
-
 
 // ======================================
 // 13. 사진 프레임 그리기
@@ -502,11 +760,19 @@ function drawFrame() {
   if (type === "heart") {
     ctx.strokeStyle = "#ff7eb6";
     ctx.lineWidth = unit * 0.025;
-    ctx.strokeRect(margin, margin, w - margin * 2, h - margin * 2);
+    ctx.strokeRect(
+      margin,
+      margin,
+      w - margin * 2,
+      h - margin * 2
+    );
+
     ctx.font = `${unit * 0.055}px sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
+
     const hearts = ["💗", "💕", "💖", "💗"];
+
     for (let i = 0; i < 8; i++) {
       const x = (i + 0.5) * w / 8;
       ctx.fillText(hearts[i % hearts.length], x, margin);
@@ -517,11 +783,19 @@ function drawFrame() {
     ctx.lineWidth = unit * 0.018;
     ctx.shadowColor = "#fff1a8";
     ctx.shadowBlur = unit * 0.025;
-    ctx.strokeRect(margin, margin, w - margin * 2, h - margin * 2);
+
+    ctx.strokeRect(
+      margin,
+      margin,
+      w - margin * 2,
+      h - margin * 2
+    );
+
     ctx.shadowBlur = 0;
     ctx.font = `${unit * 0.055}px sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
+
     for (let i = 0; i < 9; i++) {
       const x = i * w / 8;
       ctx.fillText("✨", x, margin);
@@ -530,15 +804,30 @@ function drawFrame() {
   } else if (type === "lace") {
     ctx.strokeStyle = "#ffb6d5";
     ctx.lineWidth = unit * 0.035;
-    ctx.strokeRect(margin, margin, w - margin * 2, h - margin * 2);
+
+    ctx.strokeRect(
+      margin,
+      margin,
+      w - margin * 2,
+      h - margin * 2
+    );
+
     ctx.strokeStyle = "#ffffff";
     ctx.lineWidth = unit * 0.008;
     ctx.setLineDash([unit * 0.012, unit * 0.012]);
-    ctx.strokeRect(margin, margin, w - margin * 2, h - margin * 2);
+
+    ctx.strokeRect(
+      margin,
+      margin,
+      w - margin * 2,
+      h - margin * 2
+    );
+
     ctx.setLineDash([]);
     ctx.font = `${unit * 0.07}px sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
+
     ctx.fillText("🎀", margin, margin);
     ctx.fillText("🎀", w - margin, margin);
     ctx.fillText("🎀", margin, h - margin);
@@ -546,27 +835,44 @@ function drawFrame() {
   } else if (type === "polaroid") {
     const side = unit * 0.06;
     const bottom = unit * 0.16;
+
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, side, h);
     ctx.fillRect(w - side, 0, side, h);
     ctx.fillRect(0, 0, w, side);
     ctx.fillRect(0, h - bottom, w, bottom);
+
     ctx.fillStyle = "#777777";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.font = `italic ${unit * 0.035}px cursive`;
-    ctx.fillText("my lovely moment ♡", w / 2, h - bottom / 2);
+
+    ctx.fillText(
+      "my lovely moment ♡",
+      w / 2,
+      h - bottom / 2
+    );
   } else if (type === "y2k") {
     const gradient = ctx.createLinearGradient(0, 0, w, h);
+
     gradient.addColorStop(0, "#8be9ff");
     gradient.addColorStop(0.5, "#d8a8ff");
     gradient.addColorStop(1, "#ff9acb");
+
     ctx.strokeStyle = gradient;
     ctx.lineWidth = unit * 0.045;
-    ctx.strokeRect(margin, margin, w - margin * 2, h - margin * 2);
+
+    ctx.strokeRect(
+      margin,
+      margin,
+      w - margin * 2,
+      h - margin * 2
+    );
+
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.font = `${unit * 0.06}px sans-serif`;
+
     ctx.fillText("💿", margin, margin);
     ctx.fillText("⭐", w - margin, margin);
     ctx.fillText("💖", margin, h - margin);
@@ -584,9 +890,9 @@ export function render() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   drawBackground();
-  drawImage(); // 🟢 단일 및 분할 이미지 처리
+  drawImage();
   drawStrokes();
-  drawStickers(); // 🟢 스티커 렌더링 (회전 등 적용됨)
-  drawTexts();    // 🟢 텍스트 렌더링 (볼드 등 적용됨)
+  drawStickers();
+  drawTexts();
   drawFrame();
 }

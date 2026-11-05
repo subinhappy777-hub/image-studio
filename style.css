@@ -745,3 +745,71 @@ hr.divider {
     grid-column: span 2;
   }
 }
+
+/* ======================================
+   16. 문구 입력 및 자동 줄바꿈 UI 개선
+   ====================================== */
+
+/* 문구 입력창 */
+#textInput {
+  width: 100%;
+  min-height: 100px;
+  padding: 12px;
+
+  border: 1px solid #cbd5e1;
+  border-radius: 9px;
+
+  background: #ffffff;
+  color: #1b2740;
+
+  font-size: 14px;
+  line-height: 1.7;
+
+  resize: vertical;
+
+  /* 긴 단어가 입력창 밖으로 나가는 현상 방지 */
+  overflow-wrap: anywhere;
+  word-break: normal;
+
+  /* 사용자가 입력한 줄바꿈 표시 */
+  white-space: pre-wrap;
+
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+/* 입력창에 포커스가 있을 때 */
+#textInput:focus {
+  outline: none;
+  border-color: #4f8cff;
+  box-shadow: 0 0 0 3px rgba(79, 140, 255, 0.15);
+}
+
+/* 문구 입력 안내 */
+#textInputHint {
+  margin-top: -5px;
+  line-height: 1.7;
+}
+
+/* 편집 설정 영역의 입력창 공통 개선 */
+.options textarea {
+  max-width: 100%;
+  
+  box-sizing: border-box;
+}
+
+/* 키보드로 조작할 때 포커스 표시 */
+button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #4f8cff;
+  outline-offset: 2px;
+}
+
+/* 작은 화면에서 문구 입력창 여백 조정 */
+@media (max-width: 520px) {
+  #textInput {
+    min-height: 90px;
+    font-size: 13px;
+  }
+}
