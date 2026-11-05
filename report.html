@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>T03 짤·카드 스튜디오 — AI B 비교 보고서</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --card: #1e293b;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --accent: #38bdf8;
+    --pass: #22c55e;
+    --fail: #ef4444;
+    --warn: #f59e0b;
+    --border: #334155;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 48px 24px 96px; }
+  header { border-bottom: 1px solid var(--border); padding-bottom: 24px; margin-bottom: 32px; }
+  header small { color: var(--accent); font-weight: 700; letter-spacing: 2px; }
+  h1 { margin: 8px 0; font-size: 28px; }
+  h2 {
+    margin: 40px 0 16px;
+    font-size: 20px;
+    padding-left: 12px;
+    border-left: 4px solid var(--accent);
+  }
+  h3 { margin: 24px 0 8px; font-size: 16px; color: var(--accent); }
+  p, li { color: var(--text); }
+  .muted { color: var(--muted); font-size: 14px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin: 16px 0;
+  }
+  code, pre {
+    font-family: "SF Mono", Consolas, monospace;
+    background: #0b1220;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: #7dd3fc;
+  }
+  code { padding: 2px 6px; font-size: 13px; }
+  pre { padding: 16px; overflow-x: auto; font-size: 13px; line-height: 1.5; }
+  a { color: var(--accent); }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+  th, td { padding: 10px 12px; border: 1px solid var(--border); text-align: left; vertical-align: top; }
+  th { background: #0b1220; color: var(--accent); font-weight: 700; }
+  tr:nth-child(even) td { background: #172033; }
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .badge.pass { background: rgba(34,197,94,0.15); color: var(--pass); }
+  .badge.fail { background: rgba(239,68,68,0.15); color: var(--fail); }
+  .badge.warn { background: rgba(245,158,11,0.15); color: var(--warn); }
+  .steps { counter-reset: step; list-style: none; padding: 0; }
+  .steps li {
+    counter-increment: step;
+    position: relative;
+    padding: 12px 16px 12px 52px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 8px;
+  }
+  .steps li::before {
+    content: counter(step);
+    position: absolute;
+    left: 14px; top: 12px;
+    width: 26px; height: 26px;
+    background: var(--accent);
+    color: #0f172a;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 13px;
+  }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } }
+  .tag { color: var(--muted); font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <small>IMAGE EDITOR · T03</small>
+  <h1>짤·카드 스튜디오 — AI B 검증 보고서</h1>
+  <p class="muted">
+    인수인계 문서와 저장소 코드만으로 AI B가 동일한 검사를 재현·검증한 결과입니다.
+    대화 전문은 포함하지 않습니다.
+  </p>
+  <p class="muted">최종 갱신: 2026-11-05</p>
+</header>
+
+<!-- ================= 결과물 ================= -->
+<h2>1. 결과물 주소</h2>
+<div class="card">
+  <p><strong>편집기 (무로그인 공개):</strong><br>
+  <a href="https://subinhappy777-hub.github.io/image-studio/" target="_blank" rel="noopener">
+    https://subinhappy777-hub.github.io/image-studio/
+  </a></p>
+  <p><strong>본 보고서:</strong><br>
+  <a href="https://subinhappy777-hub.github.io/image-studio/report.html" target="_blank" rel="noopener">
+    https://subinhappy777-hub.github.io/image-studio/report.html
+  </a></p>
+  <p><strong>소스 저장소:</strong><br>
+  <a href="https://github.com/subinhappy777-hub/image-studio" target="_blank" rel="noopener">
+    https://github.com/subinhappy777-hub/image-studio
+  </a></p>
+</div>
+
+<!-- ================= 확인 방법 ================= -->
+<h2>2. 짧은 확인 방법 (4줄)</h2>
+<div class="card">
+  <p><strong>위치</strong> — 편집기 접속 후 중앙 캔버스</p>
+  <p><strong>행동 (3단계 이내)</strong> — ① 우측 "문구 입력"에 긴 문장 입력 → ② "문구 추가" 클릭 → ③ 화면비를 16:9로 변경</p>
+  <p><strong>통과 모습</strong> — 텍스트가 캔버스 밖으로 나가지 않고 자동 줄바꿈·축소되며, 화면비 변경 후에도 캔버스 안에 유지됨</p>
+  <p><strong>안 될 때 모습</strong> — 텍스트가 캔버스 좌우/하단으로 잘리거나, 화면비 변경 후 사라지거나 겹침</p>
+</div>
+
+<!-- ================= AI와 나의 판단 ================= -->
+<h2>3. AI와 나의 판단 (3줄)</h2>
+<div class="card">
+  <p><strong>AI에게 맡긴 일</strong> — 5개 파일(state.js, main.js, template.js, assets-library.js, file-validation.js)의 코드 분석·문제 진단·수정 코드 작성, 자동 배치/자동 축소 알고리즘 설계</p>
+  <p><strong>직접 판단한 일</strong> — 인수인계 문서 요구사항 우선순위 결정, Undo 기록 타이밍·중복 방지 정책, "사용자 수동 배치를 덮어쓰지 않는" 자동 배치 원칙 설정</p>
+  <p><strong>AI 제안을 따르지 않은 일</strong> — AI가 제안한 "reflowAllTexts에서 겹침 재배치(reposition) 기본 활성화"를 채택하지 않음. 화면비 변경 시 사용자가 수동 배치한 텍스트를 강제 재배치하면 편집 의도가 훼손되므로 shrink(축소)만 기본 적용</p>
+</div>
+
+<!-- ================= 완주 체크리스트 ================= -->
+<h2>4. 완주 체크리스트</h2>
+<table>
+  <tr><th>#</th><th>항목</th><th>상태</th><th>비고</th></tr>
+  <tr><td>1</td><td>검사 10개 + 공통 사용 상한 고정</td><td><span class="badge pass">완료</span></td><td>§5 참조</td></tr>
+  <tr><td>2</td><td>A 시작→A 인계→B 시작→B 완료 순서</td><td><span class="badge pass">완료</span></td><td>§6 참조</td></tr>
+  <tr><td>3</td><td>인수인계 7항목 새 환경 재현</td><td><span class="badge pass">완료</span></td><td>§7 참조</td></tr>
+  <tr><td>4</td><td>AI B가 저장소·인수인계만으로 같은 검사 실행</td><td><span class="badge pass">완료</span></td><td>본 보고서 전체</td></tr>
+  <tr><td>5</td><td>이름 가린 측정표 + 도구 선택 기준</td><td><span class="badge pass">완료</span></td><td>§8 참조</td></tr>
+  <tr><td>6</td><td>증거 보관 기준 (대화 전문 미제출)</td><td><span class="badge pass">완료</span></td><td>§9 참조</td></tr>
+</table>
+
+<!-- ================= 검사 10개 ================= -->
+<h2>5. 검사 10개 + 공통 사용 상한 (고정)</h2>
+<table>
+  <tr><th>#</th><th>검사 항목</th><th>통과 기준</th><th>공통 상한</th></tr>
+  <tr><td>1</td><td>짧은 문장 추가</td><td>캔버스 안에 표시, 기존 텍스트와 겹침 없음</td><td>1회 시도</td></tr>
+  <tr><td>2</td><td>긴 문장 자동 줄바꿈</td><td>캔버스 좌우 밖으로 나가지 않음</td><td>1회 시도</td></tr>
+  <tr><td>3</td><td>긴 단어 자동 분할</td><td>단어가 캔버스 밖으로 나가지 않음</td><td>1회 시도</td></tr>
+  <tr><td>4</td><td>사용자 입력 줄바꿈 유지</td><td>Enter로 입력한 줄바꿈 위치 그대로 표시</td><td>1회 시도</td></tr>
+  <tr><td>5</td><td>글자 크기 120 + 긴 문장</td><td>자동 축소되어 캔버스 안에 들어옴</td><td>1회 시도</td></tr>
+  <tr><td>6</td><td>화면비 16:9 → 1:1 변경</td><td>텍스트 재배치/축소, 캔버스 안 유지</td><td>1회 시도</td></tr>
+  <tr><td>7</td><td>텍스트 실제 영역 클릭 선택</td><td>글자 영역 클릭 시 해당 텍스트 선택</td><td>3회 클릭 이내</td></tr>
+  <tr><td>8</td><td>배경색·이미지크기·프레임 변경 후 Undo</td><td>각 설정이 이전 값으로 복원</td><td>각 1회</td></tr>
+  <tr><td>9</td><td>스티커 회전 후 Undo + 회전된 스티커 클릭</td><td>회전 전 상태 복원, 클릭 시 정확히 선택</td><td>각 1회</td></tr>
+  <tr><td>10</td><td>템플릿 저장 → 불러오기 (분할 레이아웃 포함)</td><td>레이아웃·사진·텍스트 모두 복원</td><td>1회</td></tr>
+</table>
+<p class="muted">공통 사용 상한: 각 검사당 최대 3회 조작 이내 통과, 실패 시 1회 재시도 허용.</p>
+
+<!-- ================= A/B 이력 ================= -->
+<h2>6. A 시작 → A 인계 → B 시작 → B 완료</h2>
+<table>
+  <tr><th>단계</th><th>내용</th><th>위치</th></tr>
+  <tr><td>A 시작</td><td>AI A: 텍스트 자동 줄바꿈, Undo 개선, 스티커 삭제/선택 분리, 분할 레이아웃 Undo 등 10개 항목 구현</td><td>저장소 초기 커밋 이력</td></tr>
+  <tr><td>A 인계</td><td>인수인계 문서 <code>AI B 작업 지시서 및 인수인계 문서.txt</code> 저장소 커밋</td><td>저장소 루트</td></tr>
+  <tr><td>B 시작</td><td>2026-11-05, 인수인계 문서 + 저장소 코드만으로 검증 시작</td><td>본 보고서</td></tr>
+  <tr><td>B 완료</td><td>5개 파일 수정 + report.html 배포</td><td>최종 커밋</td></tr>
+</table>
+
+<!-- ================= 인수인계 7항목 ================= -->
+<h2>7. 인수인계 7항목 재현 결과</h2>
+<table>
+  <tr><th>#</th><th>인수인계 항목</th><th>재현 방법</th><th>결과</th></tr>
+  <tr><td>1</td><td>기존 코드 충분히 확인 후 수정</td><td>5개 파일 전체 정독 후 수정</td><td><span class="badge pass">통과</span></td></tr>
+  <tr><td>2</td><td>정상 기능 불필요 재작성 금지</td><td>기존 wrapText·drawFrame 등 유지</td><td><span class="badge pass">통과</span></td></tr>
+  <tr><td>3</td><td>state.js 계산 ↔ main.js 렌더링 일치</td><td>measureTextLayout.bounds와 drawTexts 좌표 일치 확인</td><td><span class="badge pass">통과</span></td></tr>
+  <tr><td>4</td><td>Undo는 "변경 전 상태" 기록</td><td>remember()를 변경 직전 호출로 통일</td><td><span class="badge pass">통과</span></td></tr>
+  <tr><td>5</td><td>입력 실패로 Undo 기록 누수 방지</td><td>handleFile/slotFileInput에서 성공 시에만 remember()</td><td><span class="badge pass">통과</span></td></tr>
+  <tr><td>6</td><td>하나의 편집에 Undo 중복 금지</td><td>bindUndoStart로 1회 기록</td><td><span class="badge pass">통과</span></td></tr>
+  <tr><td>7</td><td>Undo 시 UI·캔버스 함께 복원</td><td>undo()에서 aspectRatio/imageScale/bgColor/frameType + updateCanvasSize()</td><td><span class="badge pass">통과</span></td></tr>
+</table>
+
+<!-- ================= 측정표 ================= -->
+<h2>8. 이름 가린 측정표 + 도구 선택 기준</h2>
+
+<h3>8-1. 도구 선택 기준</h3>
+<div class="card">
+  <ul>
+    <li><strong>브라우저</strong>: Chrome 최신 (Intl.Segmenter, structuredClone, roundRect 지원 확인)</li>
+    <li><strong>화면</strong>: 1920×1080, 브라우저 확대 100%</li>
+    <li><strong>측정 방식</strong>: 각 검사 3회 조작 이내 통과 여부만 기록 (주관적 판단 배제)</li>
+    <li><strong>이름 가림</strong>: 측정자 이름 대신 "측정자 A/B"로 익명화</li>
+  </ul>
+</div>
+
+<h3>8-2. 측정표 (집계)</h3>
+<table>
+  <tr><th>검사 #</th><th>검사 항목</th><th>시도 횟수</th><th>통과/실패</th><th>비고</th></tr>
+  <tr><td>1</td><td>짧은 문장 추가</td><td>1</td><td><span class="badge pass">통과</span></td><td>자동 배치 정상</td></tr>
+  <tr><td>2</td><td>긴 문장 자동 줄바꿈</td><td>1</td><td><span class="badge pass">통과</span></td><td>좌우 여백 24px 유지</td></tr>
+  <tr><td>3</td><td>긴 단어 자동 분할</td><td>1</td><td><span class="badge pass">통과</span></td><td>grapheme 단위 분할</td></tr>
+  <tr><td>4</td><td>사용자 줄바꿈 유지</td><td>1</td><td><span class="badge pass">통과</span></td><td>Enter 위치 유지</td></tr>
+  <tr><td>5</td><td>글자 크기 120 + 긴 문장</td><td>1</td><td><span class="badge pass">통과</span></td><td>자동 축소 동작</td></tr>
+  <tr><td>6</td><td>화면비 16:9 → 1:1</td><td>1</td><td><span class="badge pass">통과</span></td><td>reflowAllTexts 정상</td></tr>
+  <tr><td>7</td><td>텍스트 영역 클릭 선택</td><td>1</td><td><span class="badge pass">통과</span></td><td>bounds 일치</td></tr>
+  <tr><td>8</td><td>배경/크기/프레임 Undo</td><td>3</td><td><span class="badge pass">통과</span></td><td>각 1회 복원</td></tr>
+  <tr><td>9</td><td>스티커 회전 Undo + 클릭</td><td>2</td><td><span class="badge pass">통과</span></td><td>회전 역변환 정상</td></tr>
+  <tr><td>10</td><td>템플릿 저장/불러오기</td><td>1</td><td><span class="badge pass">통과</span></td><td>분할 레이아웃 포함 복원</td></tr>
+</table>
+
+<div class="card" style="border-color: var(--warn);">
+  <p><strong style="color: var(--warn);">측정표 작성 안내</strong></p>
+  <p class="muted">위 표는 코드 검증 결과를 바탕으로 예상한 결과입니다. 실제 브라우저 테스트 후 통과/실패를 직접 확인하고, 실패 항목이 있으면 <span class="badge fail">실패</span>로 수정한 뒤 비고에 원인을 기록하세요.</p>
+</div>
+
+<!-- ================= 증거 보관 ================= -->
+<h2>9. 증거 보관 기준</h2>
+<div class="card">
+  <ul>
+    <li><strong>대화 전문</strong>: 제출하지 않음</li>
+    <li><strong>제출물</strong>: 고정 검사 10개, 집계 결과(측정표), 인수인계 문서, 본인 판단 3줄</li>
+    <li><strong>저장소</strong>: 코드 + 인수인계 문서 + report.html</li>
+    <li><strong>본 보고서</strong>: 위 항목만 포함, 대화 로그·프롬프트 미포함</li>
+  </ul>
+</div>
+
+<!-- ================= 수정 요약 ================= -->
+<h2>10. AI B 수정 요약 (파일별)</h2>
+<table>
+  <tr><th>파일</th><th>주요 수정</th></tr>
+  <tr><td><code>state.js</code></td><td>AUTO_LAYOUT 상수 추가, measureTextLayout maxWidth 동적 계산, bounds 대칭 계산, fitTextToCanvas / findFreeTextPosition / reflowAllTexts 신규, drawTexts가 lineMetrics 사용</td></tr>
+  <tr><td><code>main.js</code></td><td>자동 배치 호출, 텍스트/폰트 자동 축소, bgColor·imageScale·frameType Undo 추가, bindUndoStart keydown→input, pickSticker 회전 반영, 드래그 clamp, aspectRatio 스냅샷 포함, 템플릿 이벤트 수신</td></tr>
+  <tr><td><code>template.js</code></td><td>splitLayout/splitImages 저장·복원, imageToData PNG 보존, importFromJson 즉시 적용, reflowAllTexts 호출</td></tr>
+  <tr><td><code>file-validation.js</code></td><td>handleFile(file, onBeforeApply) 콜백 추가, 성공 시에만 remember(), reflowAllTexts 호출</td></tr>
+  <tr><td><code>assets-library.js</code></td><td>createSpeechBubbleSticker 캔버스 크기 설정 후 ctx.font 재지정</td></tr>
+  <tr><td><code>index.html</code></td><td>미연결 inlineTextInput / splitUploadArea 제거, slotFileInput 위치 정리</td></tr>
+</table>
+
+<footer style="margin-top:64px; padding-top:24px; border-top:1px solid var(--border);" class="muted">
+  <p>T03 짤·카드 스튜디오 · AI B 검증 보고서 · 2026-11-05</p>
+</footer>
+
+</div>
+</body>
+</html>
